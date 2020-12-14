@@ -28,7 +28,8 @@ BUILD                   := $(ROOT)/build
 
 # General options
 EMBEDDED_LDFLAGS        ?= -nostdlib -static -Wl,-fatal_warnings -Wl,-dead_strip -Wl,-Z
-EMBEDDED_CC_FLAGS       ?= -Wall -Wunused-label -Werror -O3 -flto -ffreestanding -U__nonnull -nostdlibinc -I$(LIB)/include $(EMBEDDED_LDFLAGS)
+#EMBEDDED_CC_FLAGS       ?= -Wall -Wunused-label -Werror -O3 -flto -ffreestanding -U__nonnull -nostdlibinc -I$(LIB)/include $(EMBEDDED_LDFLAGS)
+EMBEDDED_CC_FLAGS       ?= -Wall -Wunused-label -Werror -g -flto -ffreestanding -U__nonnull -nostdlibinc -I$(LIB)/include $(EMBEDDED_LDFLAGS)
 
 # Pongo options
 PONGO_LDFLAGS           ?= -L$(LIB)/lib -lc -lm -lg -Wl,-preload -Wl,-no_uuid -Wl,-e,start -Wl,-order_file,$(SRC)/sym_order.txt -Wl,-image_base,0x100000000 -Wl,-sectalign,__DATA,__common,0x8  -Wl,-segalign,0x4000 

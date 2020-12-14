@@ -73,6 +73,38 @@ typedef struct boot_args {
 	uint64_t		memSizeActual;		/* Actual size of memory */
 } boot_args;
 
+#define FDT_HEADER_MAGIC      0xd00dfeed
+typedef struct
+{
+    uint32_t magic;
+    uint32_t totalsize;
+    uint32_t off_dt_struct;
+    uint32_t off_dt_strings;
+    uint32_t off_mem_rsvmap;
+    uint32_t version;
+    uint32_t last_comp_version;
+    uint32_t boot_cpuid_phys;
+    uint32_t size_dt_strings;
+    uint32_t size_dt_struct;
+} __packed fdt_header_t;
+
+typedef struct {
+    uint64_t address;
+    uint64_t size;
+} __packed fdt_reserve_entry_t;
+
+#define FDT_BEGIN_NODE 0x00000001
+#define FDT_END_NODE 0x00000002
+#define FDT_PROP 0x00000003
+#define FDT_NOP 0x00000004
+#define FDT_END 0x00000009
+
+typedef struct
+{
+    uint32_t len;
+    uint32_t nameoff;
+} fdt_prop_t;
+
 typedef struct
 {
     uint32_t nprop;
@@ -116,11 +148,15 @@ extern void lock_take(lock* lock); // takes a lock spinning initially but after 
 extern void lock_take_spin(lock* lock); // takes a lock spinning until it acquires it
 extern void lock_release(lock* lock); // releases ownership on a lock
 
+extern void dt_dump(dt_node_t* node);
 extern int dt_check(void* mem, uint32_t size, uint32_t* offp);
 extern int dt_parse(dt_node_t* node, int depth, uint32_t* offp, int (*cb_node)(void*, dt_node_t*), void* cbn_arg, int (*cb_prop)(void*, dt_node_t*, int, const char*, void*, uint32_t), void* cbp_arg);
 extern dt_node_t* dt_find(dt_node_t* node, const char* name);
 extern void* dt_prop(dt_node_t* node, const char* key, uint32_t* lenp);
 extern void* dt_get_prop(const char* device, const char* prop, uint32_t* size);
+
+extern bool fdtree_find_prop(void *addr, fdt_header_t *header, const char *node_prefix, const char *prop_name, void *buf, uint32_t buflen);
+
 extern struct memmap* dt_alloc_memmap(dt_node_t* node, const char* name);
 extern void task_yield_asserted();
 extern void _task_yield();
@@ -182,6 +218,8 @@ typedef enum {
 #ifdef PONGO_PRIVATE
 #import "vfs.h"
 #import "task.h"
+#import "fw_cfg.h"
+#import "fdtree.h"
 #else
 struct proc;
 struct task;

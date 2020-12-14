@@ -27,8 +27,9 @@ start:
     mov x9, x8
 // branch from x29 here
     adr x4, start
-    mov x5, #0x800000000
-    movk x5, #0x1800, lsl#16
+    // mov x5, #0x800000000
+    // movk x5, #0x1800, lsl#16
+    mov x5, #0x41800000
     and x30, x30, 0x4
     orr x30, x30, x5
     cmp x4, x5
@@ -69,8 +70,9 @@ copyloop_3:
     ret
 
 start$l0:
-    mov x1, x0
-    mov x0, x9
+    //mov x1, x0
+    mov x1, #4141 // boot args
+    mov x0, x9 // boot image
     mov x29, xzr
     bl _set_exception_stack_core0
     bl _set_execution_stack_core0

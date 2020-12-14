@@ -306,11 +306,13 @@ void lowlevel_setup(uint64_t phys_off, uint64_t phys_size)
 
     ttbr0 = ttb_alloc();
     ttbr1 = ttb_alloc();
+    // va, pa, size, sh, attrix, overwrite
+    // 8GB, 8GB, 4GB
     map_range_noflush_rw(0x200000000, 0x200000000, 0x100000000, 2, 0, false);
     phys_off += (pgsz-1);
     phys_off &= ~(pgsz-1);
-    map_range_noflush_rw(kCacheableView + phys_off, 0x800000000 + phys_off, phys_size, 3, 1, false);
-    map_range_noflush_rwx(0x800000000ULL + phys_off, 0x800000000 + phys_off, phys_size, 2, 0, false);
+    map_range_noflush_rw(kCacheableView + phys_off, phys_off, phys_size, 3, 1, false);
+    map_range_noflush_rwx(0x818000000ULL + phys_off, phys_off, phys_size, 2, 0, false);
     // TLB flush is done by enable_mmu_el1
     
     if (!early_heap_base) {
@@ -325,7 +327,7 @@ void lowlevel_setup(uint64_t phys_off, uint64_t phys_size)
     if (!(get_el() == 1)) panic("pongoOS runs in EL1 only! did you skip pongoMon?");
 
     set_vbar_el1((uint64_t)&exception_vector);
-    enable_mmu_el1((uint64_t)ttbr0, 0x13A402A00 | (tg0 << 14) | (tg0 << 30) | (t1sz << 16) | t0sz, 0x04ff00, (uint64_t)ttbr1);
+    //enable_mmu_el1((uint64_t)ttbr0, 0x13A402A00 | (tg0 << 14) | (tg0 << 30) | (t1sz << 16) | t0sz, 0x04ff00, (uint64_t)ttbr1);
 
     kernel_vm_space.ttbr0 = (uint64_t)ttbr0;
     kernel_vm_space.ttbr1 = (uint64_t)ttbr1;
@@ -338,7 +340,7 @@ void lowlevel_set_identity(void)
 void lowlevel_cleanup(void)
 {
     cache_clean_and_invalidate((void*)ram_phys_off, ram_phys_size);
-    disable_mmu_el1();
+    //disable_mmu_el1();
 }
 struct vm_space* task_vm_space(struct task* task) {
     return task->vm_space;

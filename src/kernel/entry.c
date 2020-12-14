@@ -120,7 +120,30 @@ __attribute__((noinline)) void pongo_entry_cached()
 {
     extern char preemption_over;
     preemption_over = 1;
-    gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
+
+    fdt_header_t fdt_header;
+    if (!fdt_parse_header(gBootArgs->deviceTreeP, &fdt_header)) {
+        panic("fdt invalid header");
+    }
+    gBootArgs->deviceTreeLength = fdt_header.totalsize;
+
+    init_fw_cfg(gBootArgs->deviceTreeP, &fdt_header);
+    screen_init();
+
+    //gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
+
+
+    // semms to be always empty but let's dump it anyway 🤷‍♂️
+    print_reserved_map(gBootArgs->deviceTreeP, &fdt_header);
+
+    // parse structure block
+    dump_fdtree(gBootArgs->deviceTreeP, &fdt_header);
+
+    for (int i =0;  i < 10; i++) {
+        screen_puts("1337 h4cks");
+    }
+
+    // nothing below this line will work
     gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
 
     map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
@@ -260,19 +283,34 @@ __attribute__((noinline)) void pongo_entry_cached()
 volatile void jump_to_image_extended(uint64_t image, uint64_t args, uint64_t original_image);
 extern uint64_t gPongoSlide;
 
+boot_args gstatic_args = {
+    .Revision = 1,
+    .Version = 2,
+    .virtBase = 0xAABBCC,
+    .physBase = 0x0,
+    .memSize = 0x100000000, // 4GB
+    .topOfKernelData = 0xBBCCDD,
+    .machineType = 0x1337,
+    .deviceTreeP = (void*)0x40000000,
+    .deviceTreeLength = 0x1337,
+    .CommandLine = "abc",
+    .bootFlags = 0,
+    .memSizeActual = 0x100000000, // 4GB
+};
+
 void pongo_entry(uint64_t *kernel_args, void *entryp, void (*exit_to_el1_image)(void *boot_args, void *boot_entry_point))
 {
-    gBootArgs = (boot_args*)kernel_args;
-    gEntryPoint = entryp;
+    gBootArgs = &gstatic_args;
+    gEntryPoint = (void *)0x1337;
     lowlevel_setup(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
-    rebase_pc(gPongoSlide);
-    extern void set_exception_stack_core0();
-    set_exception_stack_core0();
+    //rebase_pc(gPongoSlide);
+    //extern void set_exception_stack_core0();
+    //set_exception_stack_core0();
     pongo_entry_cached();
-    extern void lowlevel_set_identity(void);
-    lowlevel_set_identity();
-    rebase_pc(-gPongoSlide);
-    set_exception_stack_core0();
+    //extern void lowlevel_set_identity(void);
+    //lowlevel_set_identity();
+    //rebase_pc(-gPongoSlide);
+    //set_exception_stack_core0();
     gFramebuffer = (uint32_t*)gBootArgs->Video.v_baseAddr;
     lowlevel_cleanup();
     if(gBootFlag == BOOT_FLAG_RAW)

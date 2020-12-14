@@ -223,9 +223,11 @@ void screen_init() {
         fboff  = fbbase & 0xfffULL;
         fbsize = (fbsize + fboff + 0xfffULL) & ~0xfffULL;
     }
-    map_range(0xfb0000000ULL, fbbase - fboff, fbsize, 3, 1, true);
-    gFramebuffer = (uint32_t*)(0xfb0000000ULL + fboff);
-    gFramebufferCopy = (uint32_t*)alloc_contig(fbsize);
+    //map_range(0xfb0000000ULL, fbbase - fboff, fbsize, 3, 1, true);
+    //gFramebuffer = (uint32_t*)(0xfb0000000ULL + fboff);
+    //gFramebufferCopy = (uint32_t*)alloc_contig(fbsize);
+    gFramebuffer = (uint32_t*)(fbbase);
+    gFramebufferCopy = (uint32_t*)(fbbase + fbsize);
 
     height &= 0xfff0;
     scale_factor = 2;
@@ -256,7 +258,7 @@ void screen_init() {
 
     basecolor = gFramebuffer[0];
     cache_clean(gFramebuffer, gHeight * gRowPixels * 4);
-    command_register("fbclear", "clears the framebuffer output (minus banner)", screen_clear_all);
-    command_register("fbinvert", "inverts framebuffer contents", screen_invert);
+    //command_register("fbclear", "clears the framebuffer output (minus banner)", screen_clear_all);
+    //command_register("fbinvert", "inverts framebuffer contents", screen_invert);
     scale_factor = 1;
 }
