@@ -223,11 +223,11 @@ void screen_init() {
         fboff  = fbbase & 0xfffULL;
         fbsize = (fbsize + fboff + 0xfffULL) & ~0xfffULL;
     }
-    //map_range(0xfb0000000ULL, fbbase - fboff, fbsize, 3, 1, true);
-    //gFramebuffer = (uint32_t*)(0xfb0000000ULL + fboff);
-    //gFramebufferCopy = (uint32_t*)alloc_contig(fbsize);
-    gFramebuffer = (uint32_t*)(fbbase);
-    gFramebufferCopy = (uint32_t*)(fbbase + fbsize);
+    map_range(0xfb0000000ULL, fbbase - fboff, fbsize, 3, 1, true);
+    gFramebuffer = (uint32_t*)(0xfb0000000ULL + fboff);
+    gFramebufferCopy = (uint32_t*)alloc_contig(fbsize);
+
+    gFramebuffer[0] = 0x0;
 
     height &= 0xfff0;
     scale_factor = 2;

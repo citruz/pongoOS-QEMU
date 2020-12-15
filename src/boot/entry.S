@@ -27,9 +27,8 @@ start:
     mov x9, x8
 // branch from x29 here
     adr x4, start
-    // mov x5, #0x800000000
-    // movk x5, #0x1800, lsl#16
-    mov x5, #0x41800000
+    mov x5, #0x800000000
+    movk x5, #0x1800, lsl#16
     and x30, x30, 0x4
     orr x30, x30, x5
     cmp x4, x5

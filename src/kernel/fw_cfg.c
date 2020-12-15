@@ -12,7 +12,7 @@
 #define FW_CFG_FILE_DIR		0x19
 
 
-#define FRAME_BUFFER_BASE 0x60000000
+#define FRAME_BUFFER_BASE 0x880000000
 #define RAMFB_FORMAT  0x34325258 /* DRM_FORMAT_XRGB8888 */
 #define RAMFB_BPP     4
 
@@ -57,7 +57,7 @@ void fw_cfg_read_bytes(uint8_t *buf, size_t size) {
 	}
 }
 
-#define TO_PHYS(addr) (addr)
+#define TO_PHYS(addr) (addr - 0x100000000 + 0x818000000)
 
 void fw_cfg_write_dma(uint8_t *buf, uint32_t size) {
 	fw_cfg_dma_access dma_ctrl;
@@ -110,7 +110,15 @@ void init_fw_cfg(void *devicetree, fdt_header_t *fdt_header) {
 		panic("fw_cfg info has unexpected size (%#llx)", fw_cfg.size);
 	}
 
-	gFwCfgBase = (void *)fw_cfg.base_addr;
+	// round size to next pagesize
+	if(is_16k()) {
+		fw_cfg.size = (fw_cfg.size + 0x3fffULL) & ~0x3fffULL;
+	} else {
+		fw_cfg.size = (fw_cfg.size + 0xfffULL) & ~0xfffULL;
+	}
+	// map physical address to virt
+	map_range(0xfa0000000ULL, fw_cfg.base_addr, fw_cfg.size, 3, 1, true);
+	gFwCfgBase = (void *)0xfa0000000ULL;
 
 	fw_cfg_select(FW_CFG_SIGNATURE);
 	if (fw_cfg_read32() != 0x51454d55) { // 'QEMU'
@@ -124,7 +132,6 @@ void init_fw_cfg(void *devicetree, fdt_header_t *fdt_header) {
 	if (!fw_cfg_find_file("etc/ramfb", &ramfb_select, &ramfb_size)) {
 		panic("did not find ramfb device");
 	}
-
 
     gBootArgs->Video.v_width = 800;
     gBootArgs->Video.v_height = 600;

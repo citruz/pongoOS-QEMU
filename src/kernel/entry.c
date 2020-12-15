@@ -112,7 +112,7 @@ out:
 
 */
 
-char soc_name[9] = {};
+char soc_name[9] = "unknown";
 uint32_t socnum = 0x0;
 void (*sep_boot_hook)(void);
 
@@ -121,33 +121,38 @@ __attribute__((noinline)) void pongo_entry_cached()
     extern char preemption_over;
     preemption_over = 1;
 
+    // virt to virt in cacheableview
+    gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
+
     fdt_header_t fdt_header;
-    if (!fdt_parse_header(gBootArgs->deviceTreeP, &fdt_header)) {
+    if (!fdt_parse_header(gDeviceTree, &fdt_header)) {
         panic("fdt invalid header");
     }
     gBootArgs->deviceTreeLength = fdt_header.totalsize;
 
-    init_fw_cfg(gBootArgs->deviceTreeP, &fdt_header);
+    init_fw_cfg(gDeviceTree, &fdt_header);
     screen_init();
-
-    //gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
-
-
+    screen_puts("test");
     // semms to be always empty but let's dump it anyway 🤷‍♂️
-    print_reserved_map(gBootArgs->deviceTreeP, &fdt_header);
+    print_reserved_map(gDeviceTree, &fdt_header);
 
     // parse structure block
-    dump_fdtree(gBootArgs->deviceTreeP, &fdt_header);
+    dump_fdtree(gDeviceTree, &fdt_header);
 
     for (int i =0;  i < 10; i++) {
         screen_puts("1337 h4cks");
     }
 
-    // nothing below this line will work
-    gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
+    //gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
 
     map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
 
+
+    screen_puts("test");
+
+    gDevType = "QEMU";
+    socnum = 0x1337;
+#if 0
     gDevType = dt_get_prop("arm-io", "device_type", NULL);
     size_t len = strlen(gDevType) - 3;
     len = len < 8 ? len : 8;
@@ -173,7 +178,7 @@ __attribute__((noinline)) void pongo_entry_cached()
             socnum = 0x8000;
         }
     }
-
+#endif
     /*
         Set up IRQ handling
     */
@@ -189,12 +194,14 @@ __attribute__((noinline)) void pongo_entry_cached()
     _task_set_current(&sched_task);
     // Setup VM
     
+    screen_puts("testtt");
     vm_init();
 
     /*
         Draw logo and set up framebuffer
     */
 
+    screen_puts("testttttttt");
     screen_init();
     
     /*
@@ -286,12 +293,12 @@ extern uint64_t gPongoSlide;
 boot_args gstatic_args = {
     .Revision = 1,
     .Version = 2,
-    .virtBase = 0xAABBCC,
-    .physBase = 0x0,
+    .virtBase = 0xfffffff01ebf0000,
+    .physBase = 0x800000000,
     .memSize = 0x100000000, // 4GB
-    .topOfKernelData = 0xBBCCDD,
+    .topOfKernelData = 0x806614000,
     .machineType = 0x1337,
-    .deviceTreeP = (void*)0x40000000,
+    .deviceTreeP = (void*)0xfffffff01ebf0000,
     .deviceTreeLength = 0x1337,
     .CommandLine = "abc",
     .bootFlags = 0,
@@ -303,14 +310,14 @@ void pongo_entry(uint64_t *kernel_args, void *entryp, void (*exit_to_el1_image)(
     gBootArgs = &gstatic_args;
     gEntryPoint = (void *)0x1337;
     lowlevel_setup(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
-    //rebase_pc(gPongoSlide);
-    //extern void set_exception_stack_core0();
-    //set_exception_stack_core0();
+    rebase_pc(gPongoSlide);
+    extern void set_exception_stack_core0();
+    set_exception_stack_core0();
     pongo_entry_cached();
-    //extern void lowlevel_set_identity(void);
-    //lowlevel_set_identity();
-    //rebase_pc(-gPongoSlide);
-    //set_exception_stack_core0();
+    extern void lowlevel_set_identity(void);
+    lowlevel_set_identity();
+    rebase_pc(-gPongoSlide);
+    set_exception_stack_core0();
     gFramebuffer = (uint32_t*)gBootArgs->Video.v_baseAddr;
     lowlevel_cleanup();
     if(gBootFlag == BOOT_FLAG_RAW)

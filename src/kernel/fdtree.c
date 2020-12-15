@@ -28,7 +28,7 @@ static inline uint32_t read_token(uint8_t **ptr) {
 
 // verify header
 bool fdt_parse_header(void *addr, fdt_header_t *header) {
-    memcpy(header, gBootArgs->deviceTreeP, sizeof(*header));
+    memcpy(header, addr, sizeof(*header));
     header->magic = __bswap32(header->magic);
     header->totalsize = __bswap32(header->totalsize);
     header->off_dt_struct = __bswap32(header->off_dt_struct);
@@ -53,7 +53,7 @@ bool fdt_parse_header(void *addr, fdt_header_t *header) {
 
 void print_reserved_map(void *addr, fdt_header_t *header) {
     fdt_reserve_entry_t reserve_entry;
-    uint64_t offset = (uint64_t)gBootArgs->deviceTreeP + header->off_mem_rsvmap;
+    uint64_t offset = (uint64_t)addr + header->off_mem_rsvmap;
     char buf[100];
 
     do {

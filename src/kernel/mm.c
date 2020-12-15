@@ -291,28 +291,29 @@ void lowlevel_setup(uint64_t phys_off, uint64_t phys_size)
         t0sz = 25;
         t1sz = 25;
     }
-    uint64_t pgsz = 1ULL << (tt_bits + 3);
+    uint64_t pgsz = 1ULL << (tt_bits + 3); // 4096
     ttb_alloc = ttb_alloc_early;
     volatile extern uint64_t start[] __asm__("start");
-    volatile uint64_t pongo_base = ((uint64_t) &start);
-    volatile extern uint64_t __bss_end[] __asm__("segment$end$__BSS");
-    volatile uint64_t pongo_size = ((uint64_t) __bss_end) - pongo_base;
-    volatile extern uint64_t __text_end[] __asm__("segment$start$__DATA");
-    __unused volatile uint64_t pongo_text_size = ((uint64_t) __text_end) - pongo_base;
+    volatile uint64_t pongo_base = ((uint64_t) &start); // 0x818000000
+    volatile extern uint64_t __bss_end[] __asm__("segment$end$__BSS"); // 0x81803c00
+    volatile uint64_t pongo_size = ((uint64_t) __bss_end) - pongo_base; // 0x3c000
+    volatile extern uint64_t __text_end[] __asm__("segment$start$__DATA"); // 0x81802c000
+    __unused volatile uint64_t pongo_text_size = ((uint64_t) __text_end) - pongo_base; // 0x2c000
 
-    ttb_alloc_base = pongo_base - 0x4000;
+    ttb_alloc_base = pongo_base - 0x4000; // 0x817ffc000
 
     //ttb_alloc_base = MAGIC_BASE - 0x4000;
 
-    ttbr0 = ttb_alloc();
-    ttbr1 = ttb_alloc();
+    ttbr0 = ttb_alloc(); // 0x817ffb000
+    ttbr1 = ttb_alloc(); // 0x817ffa000
     // va, pa, size, sh, attrix, overwrite
     // 8GB, 8GB, 4GB
     map_range_noflush_rw(0x200000000, 0x200000000, 0x100000000, 2, 0, false);
+    // round to next page
     phys_off += (pgsz-1);
     phys_off &= ~(pgsz-1);
-    map_range_noflush_rw(kCacheableView + phys_off, phys_off, phys_size, 3, 1, false);
-    map_range_noflush_rwx(0x818000000ULL + phys_off, phys_off, phys_size, 2, 0, false);
+    map_range_noflush_rw(kCacheableView + phys_off, 0x800000000 + phys_off, phys_size, 3, 1, false); // 0x400000000, 0x800000000, 0x100000000
+    map_range_noflush_rwx(0x800000000ULL + phys_off, 0x800000000 + phys_off, phys_size, 2, 0, false); // 0x800000000ULL, 0x800000000, 0x100000000
     // TLB flush is done by enable_mmu_el1
     
     if (!early_heap_base) {
@@ -320,14 +321,14 @@ void lowlevel_setup(uint64_t phys_off, uint64_t phys_size)
     }
     map_range_noflush_rx(0x100000000ULL, pongo_base, pongo_text_size, 3, 1, false);
     map_range_noflush_rw(0x100000000ULL + pongo_text_size, pongo_base + pongo_text_size, (pongo_size - pongo_text_size + 0x3fff) & ~0x3fff, 3, 1, false);
-    gPongoSlide = 0x100000000ULL - pongo_base;
+    gPongoSlide = 0x100000000ULL - pongo_base; // 0xFFFFFFF8E8000000
     ram_phys_off = kCacheableView + phys_off;
     ram_phys_size = phys_size;
 
     if (!(get_el() == 1)) panic("pongoOS runs in EL1 only! did you skip pongoMon?");
 
     set_vbar_el1((uint64_t)&exception_vector);
-    //enable_mmu_el1((uint64_t)ttbr0, 0x13A402A00 | (tg0 << 14) | (tg0 << 30) | (t1sz << 16) | t0sz, 0x04ff00, (uint64_t)ttbr1);
+    enable_mmu_el1((uint64_t)ttbr0, 0x13A402A00 | (tg0 << 14) | (tg0 << 30) | (t1sz << 16) | t0sz, 0x04ff00, (uint64_t)ttbr1);
 
     kernel_vm_space.ttbr0 = (uint64_t)ttbr0;
     kernel_vm_space.ttbr1 = (uint64_t)ttbr1;
@@ -340,7 +341,7 @@ void lowlevel_set_identity(void)
 void lowlevel_cleanup(void)
 {
     cache_clean_and_invalidate((void*)ram_phys_off, ram_phys_size);
-    //disable_mmu_el1();
+    disable_mmu_el1();
 }
 struct vm_space* task_vm_space(struct task* task) {
     return task->vm_space;
