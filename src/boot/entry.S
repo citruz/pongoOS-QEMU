@@ -73,6 +73,7 @@ start$l0:
     mov x1, #4141 // boot args
     mov x0, x9 // boot image
     mov x29, xzr
+    bl _setup_fpu
     bl _set_exception_stack_core0
     bl _set_execution_stack_core0
     bl _trampoline_entry
@@ -104,6 +105,15 @@ el3_entry:
 el1_entry:
     blr x0
     b .
+
+.globl _setup_fpu
+_setup_fpu:
+    // disable traps on FPU access
+    mrs    x2, cpacr_el1
+    mov    x3, #(3 << 20)
+    orr    x2, x2, x3
+    msr    cpacr_el1, x2
+    ret
 
 .globl _set_exception_stack_core0
 _set_exception_stack_core0:

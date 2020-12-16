@@ -76,6 +76,7 @@ struct task* pongo_sched_head;
 
 char pongo_sched_tick() {
     char rvalue = 0;
+    screen_puts("pongo_sched_tick");
     disable_interrupts();
     if (!pongo_sched_head) panic("no tasks to schedule");
     if (pongo_sched_head == &sched_task) {
@@ -131,24 +132,6 @@ __attribute__((noinline)) void pongo_entry_cached()
     gBootArgs->deviceTreeLength = fdt_header.totalsize;
 
     init_fw_cfg(gDeviceTree, &fdt_header);
-    screen_init();
-    screen_puts("test");
-    // semms to be always empty but let's dump it anyway 🤷‍♂️
-    print_reserved_map(gDeviceTree, &fdt_header);
-
-    // parse structure block
-    dump_fdtree(gDeviceTree, &fdt_header);
-
-    for (int i =0;  i < 10; i++) {
-        screen_puts("1337 h4cks");
-    }
-
-    //gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
-
-    map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
-
-
-    screen_puts("test");
 
     gDevType = "QEMU";
     socnum = 0x1337;
@@ -194,16 +177,30 @@ __attribute__((noinline)) void pongo_entry_cached()
     _task_set_current(&sched_task);
     // Setup VM
     
-    screen_puts("testtt");
     vm_init();
 
     /*
         Draw logo and set up framebuffer
     */
 
-    screen_puts("testttttttt");
     screen_init();
-    
+
+    // semms to be always empty but let's dump it anyway 🤷‍♂️
+    print_reserved_map(gDeviceTree, &fdt_header);
+
+    // parse structure block
+    dump_fdtree(gDeviceTree, &fdt_header);
+
+    for (int i =0;  i < 10; i++) {
+        screen_puts("1337 h4cks");
+    }
+
+    //gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
+
+    map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
+
+
+    screen_puts("test");
     /*
         Set up main task for scheduling
     */
@@ -230,6 +227,10 @@ __attribute__((noinline)) void pongo_entry_cached()
 
     timer_init();
     timer_rearm();
+
+
+    screen_puts("testtttttttt");
+
 
     extern void _task_switch_asserted(struct task* new);
 

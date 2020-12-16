@@ -47,39 +47,41 @@ uint64_t gBootTimeTicks;
 void pongo_main_task() {
     gBootTimeTicks = get_ticks();
 
+    screen_puts("pongo_main_task");
+
     // Setup GPIO Base
-    gpio_early_init();
+    //gpio_early_init();
 
     // Setup serial pinmux
-    serial_pinmux_init();
+    //serial_pinmux_init();
 
     // Enable serial TX
-    serial_early_init();
+    //serial_early_init();
 
     // Turn on IRQ controller
-    interrupt_init();
+    //interrupt_init();
 
     // Enable IRQ serial RX
-    serial_init();
+    //serial_init();
 
     // Initialize pmgr
-    pmgr_init();
+    //pmgr_init();
 
     /*
         Initialize display
      */
-    mipi_init();
+    //mipi_init();
     
     /*
         Initialize TrustZone drivers
      */
-    tz_setup();
+    //tz_setup();
 
     // Relieve WDT of its duty
-    wdt_disable();
+    //wdt_disable();
 
     // Set up AES
-    aes_init();
+    //aes_init();
 
     puts("");
     puts("#==================");
@@ -90,9 +92,9 @@ void pongo_main_task() {
     puts("#");
     puts("#==================");
     screen_mark_banner();
-    iprintf("Booted by: %s\n", dt_get_prop("chosen", "firmware-version", NULL));
-    strcpy(dt_get_prop("chosen", "firmware-version", NULL), "pongoOS-");
-    strcat(dt_get_prop("chosen", "firmware-version", NULL), PONGO_VERSION);
+    //iprintf("Booted by: %s\n", dt_get_prop("chosen", "firmware-version", NULL));
+    //strcpy(dt_get_prop("chosen", "firmware-version", NULL), "pongoOS-");
+    //strcat(dt_get_prop("chosen", "firmware-version", NULL), PONGO_VERSION);
 #ifdef __clang__
     iprintf("Built with: Clang %s\n", __clang_version__);
 #else
