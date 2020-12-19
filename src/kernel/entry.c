@@ -125,13 +125,11 @@ __attribute__((noinline)) void pongo_entry_cached()
     // virt to virt in cacheableview
     gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
 
-    fdt_header_t fdt_header;
-    if (!fdt_parse_header(gDeviceTree, &fdt_header)) {
+    if (!fdt_parse_header(gDeviceTree)) {
         panic("fdt invalid header");
     }
-    gBootArgs->deviceTreeLength = fdt_header.totalsize;
 
-    init_fw_cfg(gDeviceTree, &fdt_header);
+    init_fw_cfg();
 
     gDevType = "QEMU";
     socnum = 0x1337;
@@ -186,10 +184,10 @@ __attribute__((noinline)) void pongo_entry_cached()
     screen_init();
 
     // semms to be always empty but let's dump it anyway 🤷‍♂️
-    print_reserved_map(gDeviceTree, &fdt_header);
+    print_reserved_map(gDeviceTree);
 
     // parse structure block
-    dump_fdtree(gDeviceTree, &fdt_header);
+    dump_fdtree(gDeviceTree);
 
     for (int i =0;  i < 10; i++) {
         screen_puts("1337 h4cks");

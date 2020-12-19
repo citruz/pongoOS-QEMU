@@ -62,7 +62,7 @@ void pongo_main_task() {
     //interrupt_init();
 
     // Enable IRQ serial RX
-    //serial_init();
+    serial_init();
 
     // Initialize pmgr
     //pmgr_init();

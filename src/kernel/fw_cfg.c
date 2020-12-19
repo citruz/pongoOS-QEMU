@@ -92,7 +92,7 @@ bool fw_cfg_find_file(char *name, uint16_t *store_select, uint32_t *store_size) 
 	return false;
 }
 
-void init_fw_cfg(void *devicetree, fdt_header_t *fdt_header) {
+void init_fw_cfg() {
 	uint16_t ramfb_select;
 	uint32_t ramfb_size;
 	ramfb_config config;
@@ -101,7 +101,7 @@ void init_fw_cfg(void *devicetree, fdt_header_t *fdt_header) {
         uint64_t size;
     } __packed fw_cfg;
 
-    if(!fdtree_find_prop(devicetree, fdt_header, "fw-cfg@", "reg", &fw_cfg, sizeof(fw_cfg))) {
+    if(!fdtree_find_prop("fw-cfg@", "reg", &fw_cfg, sizeof(fw_cfg))) {
         panic("did not find fw-cfg in device tree");
     }
     fw_cfg.base_addr = __bswap64(fw_cfg.base_addr);

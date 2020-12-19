@@ -23,6 +23,8 @@
 #define UART_INTERNAL 1
 #include <pongo.h>
 
+#ifndef QEMU
+
 char uart_queue[64];
 uint8_t uart_queue_idx;
 void uart_flush() {
@@ -152,3 +154,5 @@ void serial_putc(char c) {
     rUTXH0 = (unsigned)(c);
     return;
 }
+
+#endif

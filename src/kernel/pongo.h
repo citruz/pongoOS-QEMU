@@ -34,6 +34,7 @@
 #include "framebuffer/fb.h"
 #include "usb/usb.h"
 #include "uart/uart.h"
+#include "pl011/pl011.h"
 #include "gpio/gpio.h"
 #include "timer/timer.h"
 #include "xnu/xnu.h"
@@ -155,7 +156,7 @@ extern dt_node_t* dt_find(dt_node_t* node, const char* name);
 extern void* dt_prop(dt_node_t* node, const char* key, uint32_t* lenp);
 extern void* dt_get_prop(const char* device, const char* prop, uint32_t* size);
 
-extern bool fdtree_find_prop(void *addr, fdt_header_t *header, const char *node_prefix, const char *prop_name, void *buf, uint32_t buflen);
+extern bool fdtree_find_prop(const char *node_prefix, const char *prop_name, void *buf, uint32_t buflen);
 
 extern struct memmap* dt_alloc_memmap(dt_node_t* node, const char* name);
 extern void task_yield_asserted();
