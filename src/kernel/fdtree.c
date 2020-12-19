@@ -1,5 +1,8 @@
 #include <pongo.h>
 
+#define write(x) puts(x)
+//#define write(x) screen_puts(x)
+
 static inline uint32_t read_be_u32(uint8_t **ptr) {
     uint32_t val;
 
@@ -64,7 +67,7 @@ void print_reserved_map(void *addr) {
         reserve_entry.address = __bswap64(reserve_entry.address);
         reserve_entry.size = __bswap64(reserve_entry.size);
         snprintf(buf, sizeof(buf), "reserved: %#llx (size %#llx)", reserve_entry.address, reserve_entry.size);
-        screen_puts(buf);
+        write(buf);
         offset += sizeof(reserve_entry);
     } while(reserve_entry.address || reserve_entry.size);
 }
@@ -123,7 +126,7 @@ static int parse_fdt_node(uint8_t **ptr, char *strings, int depth, int (*cb_node
 int dump_fdtree_node_cb(const char *node_name, int depth) {
     char buf[100];
     snprintf(buf, sizeof(buf), "%*s- %s", depth * 2, "", node_name);
-    screen_puts(buf);
+    write(buf);
     return 0;
 }
 
@@ -132,12 +135,12 @@ int dump_fdtree_prop_cb(void *cb_args, const char *node_name, int depth, const c
     uint8_t *ptr = (uint8_t *)val;
 
     snprintf(buf, sizeof(buf), "%*s%-*s (size %#x)", (depth + 2) * 2, "", 15, prop_name, len);
-    screen_puts(buf);
+    write(buf);
 
     for (uint i = 0; i < len; i += 4) {
         snprintf(buf, sizeof(buf), "%*s%02x %02x %02x %02x", (depth + 3) * 2, "",
                     ptr[i + 0], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
-        screen_puts(buf);
+        write(buf);
     }
 
     // continue
@@ -148,10 +151,10 @@ void dump_fdtree(void *addr) {
     uint8_t *cur_ptr = (uint8_t *)addr + gFdtHeader.off_dt_struct;
     char *strings = (char *)addr + gFdtHeader.off_dt_strings;
 
-    screen_puts("dumping fdtree:");
+    write("dumping fdtree:");
     parse_fdt_node(&cur_ptr, strings, 0, dump_fdtree_node_cb, dump_fdtree_prop_cb, NULL);
-    screen_puts("");
-    screen_puts("");
+    write("");
+    write("");
 }
 
 typedef struct {

@@ -131,6 +131,12 @@ void queue_rx_char(char inch) {
     if (inch == '\n')
         event_fire(&stdin_ev);
     lock_release(&stdin_lock);
+#ifdef QEMU
+    // not sure why this is necessary, but for some reason I only receive the \r and to \n
+    if (inch == '\r') {
+        queue_rx_char('\n');
+    }
+#endif
 }
 void queue_rx_string(char* string) {
     while (*string) queue_rx_char(*string++);
@@ -159,5 +165,6 @@ int _read(int file, char *ptr, int len) {
         bufoff -= readln;
     } else panic("_read: shouldn't be reachable!");
     lock_release(&stdin_lock);
+    screen_puts("read exit");
     return readln;
 }

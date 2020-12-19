@@ -56,10 +56,16 @@ void pongo_main_task() {
     //serial_pinmux_init();
 
     // Enable serial TX
-    //serial_early_init();
+    serial_early_init();
+
+    // semms to be always empty but let's dump it anyway 🤷‍♂️
+    //print_reserved_map(gDeviceTree);
+
+    // parse structure block
+    //dump_fdtree(gDeviceTree);
 
     // Turn on IRQ controller
-    //interrupt_init();
+    interrupt_init();
 
     // Enable IRQ serial RX
     serial_init();

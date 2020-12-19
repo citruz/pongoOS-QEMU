@@ -38,7 +38,6 @@
 _console_pl011_core_init:
 	/* Check the input base address */
 	cbz	x0, core_init_fail
-#if !PL011_GENERIC_UART
 	/* Check baud rate and uart clock for sanity */
 	cbz	w1, core_init_fail
 	cbz	w2, core_init_fail
@@ -63,10 +62,12 @@ _console_pl011_core_init:
 	str	w1, [x0, #UARTLCR_H]
 	/* Clear any pending errors */
 	str	wzr, [x0, #UARTECR]
+	/* Enable interrupts for receive and receive timeout */
+	mov	w1, #(PL011_UARTIMSC_RXIM | PL011_UARTIMSC_RTIM)
+	str	w1, [x0, #UARTIMSC]
 	/* Enable tx, rx, and uart overall */
 	mov	w1, #(PL011_UARTCR_RXE | PL011_UARTCR_TXE | PL011_UARTCR_UARTEN)
 	str	w1, [x0, #UARTCR]
-#endif
 	mov	w0, #1
 	ret
 core_init_fail:

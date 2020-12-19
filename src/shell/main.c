@@ -90,9 +90,9 @@ void start_host_shell() {
     command_unregister("shell");
     command_unregister("autoboot");
     serial_enable_rx();
-    screen_puts("Enabling USB");
-    usb_init();
-    screen_puts("Done!");
+    //screen_puts("Enabling USB");
+    //usb_init();
+    //screen_puts("Done!");
 }
 #define HEXDUMP_COLS 16
 void hexdump(void *mem, unsigned int len)

@@ -46,6 +46,7 @@
 #include "img4/img4.h"
 #include "mipi/mipi.h"
 #include "aes/aes.h"
+#include "gic/gic.h"
 #endif
 
 #define DT_KEY_LEN 0x20

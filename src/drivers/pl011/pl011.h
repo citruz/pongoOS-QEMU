@@ -79,6 +79,10 @@
 #define PL011_UARTLCR_H_PEN       (1 << 1)	/* Parity Enable */
 #define PL011_UARTLCR_H_BRK       (1 << 0)	/* Send break */
 
+
+#define PL011_UARTIMSC_RXIM (1 << 4)
+#define PL011_UARTIMSC_RTIM (1 << 6)
+
 #endif /* !PL011_GENERIC_UART */
 
 #ifndef __ASSEMBLER__

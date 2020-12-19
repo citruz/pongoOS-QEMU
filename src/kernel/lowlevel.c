@@ -329,9 +329,11 @@ int sync_exc_el0(uint64_t* state) {
     dis_int_count = 0;
     return sync_exc(state);
 }
+#ifndef QEMU
 uint32_t interrupt_vector() {
     return (*(volatile uint32_t *)(gInterruptBase + 0x2004));
 }
+#endif
 uint64_t interruptCount = 0, fiqCount = 0;
 uint32_t do_preempt = 1;
 void disable_preemption() {
@@ -439,11 +441,13 @@ __attribute__((used)) static void interrupt_or_config(uint32_t bits) {
 __attribute__((used)) static void interrupt_and_config(uint32_t bits) {
     *(volatile uint32_t*)(gInterruptBase + 0x10) &= bits;
 }
+#ifndef QEMU
 uint32_t interrupt_masking_base = 0;
 void unmask_interrupt(uint32_t reg) {
     (*(volatile uint32_t *)(gInterruptBase + 0x4180 + ((reg >> 5) * 4))) = (1 << ((reg) & 0x1F));
 
 }
+#endif
 void mask_interrupt(uint32_t reg) {
     (*(volatile uint32_t *)(gInterruptBase + 0x4100 + ((reg >> 3) * 4))) = (1 << ((reg) & 0x1F));
 }
@@ -544,6 +548,7 @@ void pmgr_init()
     command_register("reset", "resets the device", wdt_reset);
     command_register("crash", "branches to an invalid address", (void*)0x41414141);
 }
+#ifndef QEMU
 void interrupt_init() {
     gInterruptBase = dt_get_u32_prop("aic", "reg");
     gInterruptBase += gIOBase;
@@ -557,6 +562,7 @@ void interrupt_teardown() {
     wdt_disable();
     task_irq_teardown();
 }
+#endif
 
 uint64_t device_clock_by_id(uint32_t id)
 {

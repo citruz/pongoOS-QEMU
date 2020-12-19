@@ -6,13 +6,35 @@
 console_t gConsole;
 uint32_t uart_should_drop_rx;
 
+#define write_32(offset, val) *((uint32_t *)(gConsole.base + (offset))) = (val)
 
 static inline void put_serial_modifier(const char* str) {
     while (*str) serial_putc(*str++);
 }
 
+void serial_pinmux_init() {
+
+}
+void serial_putc(char c) {
+    gConsole.putc(c, &gConsole);
+}
+
+char serial_getc() {
+    return gConsole.getc(&gConsole);
+}
+
+void serial_disable_rx() {
+    uart_should_drop_rx = 1;
+}
+void serial_enable_rx() {
+    uart_should_drop_rx = 0;
+}
+void uart_flush() {
+    gConsole.flush(&gConsole);
+}
+
 extern uint32_t gLogoBitmap[32];
-void serial_init() {
+void serial_early_init() {
     struct {
         uint64_t base_addr;
         uint64_t size;
@@ -23,12 +45,9 @@ void serial_init() {
     }
     uart_base.base_addr = __bswap64(uart_base.base_addr);
     uart_base.size = __bswap64(uart_base.size);
-    char buf[100];
-    snprintf(buf, 100, "uart reg=%#llx size%#llx", uart_base.base_addr, uart_base.size);
-    screen_puts(buf);
-    map_range(0xf20000000ULL, uart_base.base_addr, uart_base.size, 3, 1, true);
 
-    if (!console_pl011_register(0xf20000000ULL, 24000000, 115200, &gConsole)) {
+    // TODO get frequency from device tree
+    if (!console_pl011_register(uart_base.base_addr, 24000000, 115200, &gConsole)) {
         screen_puts("console_pl011_register FAILED");
         panic("console_pl011_register failed");
     }
@@ -58,24 +77,52 @@ void serial_init() {
     }
 }
 
-void serial_early_init() {
-
+extern void queue_rx_char(char inch);
+void uart_main() {
+    while(1) {
+        disable_interrupts();
+        char cmd_l = serial_getc();
+        do {
+            if (!uart_should_drop_rx) {
+                enable_interrupts();
+                queue_rx_char(cmd_l); // may take stdin lock
+                disable_interrupts();
+            }
+            cmd_l = serial_getc();
+        } while(cmd_l != ERROR_NO_PENDING_CHAR);
+        enable_interrupts();
+        task_exit_irq();
+    }
 }
 
-void serial_pinmux_init() {
+void serial_init() {
+    puts("pl011 serial_init");
+    struct task* irq_task = task_create_extended("uart", uart_main, TASK_IRQ_HANDLER|TASK_PREEMPT, 0);
 
-}
-void serial_putc(char c) {
-    gConsole.putc(c, &gConsole);
-}
-void serial_disable_rx() {
-    uart_should_drop_rx = 1;
-}
-void serial_enable_rx() {
-    uart_should_drop_rx = 0;
-}
-void uart_flush() {
-    gConsole.flush(&gConsole);
+    struct {
+        uint32_t type;
+        uint32_t num;
+        uint32_t flags;
+    } __packed irq;
+
+    if (!fdtree_find_prop("pl011@", "interrupts", &irq, sizeof(irq))) {
+        screen_puts("did not find uart interrupts");
+    }
+    irq.type = __bswap32(irq.type);
+    irq.num = __bswap32(irq.num);
+    irq.flags = __bswap32(irq.flags);
+
+    char buf[100];
+    snprintf(buf, 100, "serial irq: type=%u num=%u flags=%#x", irq.type, irq.num, irq.flags);
+    puts(buf);
+
+    disable_interrupts();
+    serial_disable_rx();
+
+    task_bind_to_irq(irq_task, irq.num + 32);
+    enable_interrupts();
+
+    puts("pl011 serial_init finished");
 }
 
 #endif
