@@ -12,7 +12,6 @@
 #define FW_CFG_FILE_DIR		0x19
 
 
-#define FRAME_BUFFER_BASE 0x880000000
 #define RAMFB_FORMAT  0x34325258 /* DRM_FORMAT_XRGB8888 */
 #define RAMFB_BPP     4
 
@@ -116,9 +115,7 @@ void init_fw_cfg() {
 	} else {
 		fw_cfg.size = (fw_cfg.size + 0xfffULL) & ~0xfffULL;
 	}
-	// map physical address to virt
-	map_range(0xfa0000000ULL, fw_cfg.base_addr, fw_cfg.size, 3, 1, true);
-	gFwCfgBase = (void *)0xfa0000000ULL;
+	gFwCfgBase = (void *)fw_cfg.base_addr;
 
 	fw_cfg_select(FW_CFG_SIGNATURE);
 	if (fw_cfg_read32() != 0x51454d55) { // 'QEMU'
@@ -135,11 +132,11 @@ void init_fw_cfg() {
 
     gBootArgs->Video.v_width = 800;
     gBootArgs->Video.v_height = 600;
-	gBootArgs->Video.v_baseAddr = FRAME_BUFFER_BASE;
+	gBootArgs->Video.v_baseAddr = (uint64_t)alloc_phys(gBootArgs->Video.v_width * gBootArgs->Video.v_height * RAMFB_BPP);
 	gBootArgs->Video.v_rowBytes = gBootArgs->Video.v_width * RAMFB_BPP;
 
 	// configure frame buffer
-	config.address = __bswap64(FRAME_BUFFER_BASE);
+	config.address = __bswap64(gBootArgs->Video.v_baseAddr);
 	config.fourCC = __bswap32(RAMFB_FORMAT);
 	config.flags = __bswap32(0);
 	config.width = __bswap32(gBootArgs->Video.v_width);

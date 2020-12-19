@@ -76,7 +76,6 @@ struct task* pongo_sched_head;
 
 char pongo_sched_tick() {
     char rvalue = 0;
-    screen_puts("pongo_sched_tick");
     disable_interrupts();
     if (!pongo_sched_head) panic("no tasks to schedule");
     if (pongo_sched_head == &sched_task) {
@@ -128,6 +127,10 @@ __attribute__((noinline)) void pongo_entry_cached()
     if (!fdt_parse_header(gDeviceTree)) {
         panic("fdt invalid header");
     }
+
+    // map peripherals at the same address so that we don't have to translate addresses
+    // 0x08000000 - 0x40000000
+    map_range(0x08000000, 0x08000000, 0x38000000, 3, 1, true);
 
     init_fw_cfg();
 
@@ -182,12 +185,6 @@ __attribute__((noinline)) void pongo_entry_cached()
     */
 
     screen_init();
-
-    // semms to be always empty but let's dump it anyway 🤷‍♂️
-    print_reserved_map(gDeviceTree);
-
-    // parse structure block
-    dump_fdtree(gDeviceTree);
 
     for (int i =0;  i < 10; i++) {
         screen_puts("1337 h4cks");
