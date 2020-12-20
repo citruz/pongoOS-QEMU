@@ -47,8 +47,6 @@ uint64_t gBootTimeTicks;
 void pongo_main_task() {
     gBootTimeTicks = get_ticks();
 
-    screen_puts("pongo_main_task");
-
     // Setup GPIO Base
     //gpio_early_init();
 

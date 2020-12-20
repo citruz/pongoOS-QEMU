@@ -178,8 +178,8 @@ __attribute__((noinline)) void pongo_entry_cached()
     
     task_link(&sched_task);
     _task_set_current(&sched_task);
-    // Setup VM
-    
+
+    // Setup VM    
     vm_init();
 
     /*
@@ -188,16 +188,10 @@ __attribute__((noinline)) void pongo_entry_cached()
 
     screen_init();
 
-    for (int i =0;  i < 10; i++) {
-        screen_puts("1337 h4cks");
-    }
-
     //gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
 
     map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
 
-
-    screen_puts("test");
     /*
         Set up main task for scheduling
     */
@@ -224,10 +218,6 @@ __attribute__((noinline)) void pongo_entry_cached()
 
     timer_init();
     timer_rearm();
-
-
-    screen_puts("testtttttttt");
-
 
     extern void _task_switch_asserted(struct task* new);
 

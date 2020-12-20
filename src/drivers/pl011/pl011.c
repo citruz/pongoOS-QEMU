@@ -96,7 +96,6 @@ void uart_main() {
 }
 
 void serial_init() {
-    puts("pl011 serial_init");
     struct task* irq_task = task_create_extended("uart", uart_main, TASK_IRQ_HANDLER|TASK_PREEMPT, 0);
 
     struct {
@@ -106,23 +105,23 @@ void serial_init() {
     } __packed irq;
 
     if (!fdtree_find_prop("pl011@", "interrupts", &irq, sizeof(irq))) {
-        screen_puts("did not find uart interrupts");
+        panic("did not find uart interrupts");
     }
     irq.type = __bswap32(irq.type);
     irq.num = __bswap32(irq.num);
     irq.flags = __bswap32(irq.flags);
 
+#ifdef DEBUG
     char buf[100];
     snprintf(buf, 100, "serial irq: type=%u num=%u flags=%#x", irq.type, irq.num, irq.flags);
     puts(buf);
+#endif
 
     disable_interrupts();
     serial_disable_rx();
 
     task_bind_to_irq(irq_task, irq.num + 32);
     enable_interrupts();
-
-    puts("pl011 serial_init finished");
 }
 
 #endif
