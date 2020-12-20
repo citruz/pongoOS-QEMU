@@ -1,8 +1,5 @@
 #include <pongo.h>
 
-#define write(x) puts(x)
-//#define write(x) screen_puts(x)
-
 static inline uint32_t read_be_u32(uint8_t **ptr) {
     uint32_t val;
 
@@ -45,10 +42,12 @@ bool fdt_parse_header(void *addr) {
     gFdtHeader.size_dt_strings = __bswap32(gFdtHeader.size_dt_strings);
     gFdtHeader.size_dt_struct = __bswap32(gFdtHeader.size_dt_struct);
 
-    // char buf[200];
-    // snprintf(buf, sizeof(buf), "magic=%#x mtotalsize=%#x off_dt_struct=%#x off_dt_strings=%#x off_mem_rsvmap=%#x version=%#x last_comp_version=%#x boot_cpuid_phys=%#x size_dt_strings=%#x size_dt_struct=%#x",
-    //     header->magic, header->totalsize, header->off_dt_struct, header->off_dt_strings, header->off_mem_rsvmap, header->version, header->last_comp_version, header->boot_cpuid_phys, header->size_dt_strings, header->size_dt_struct);
-    // screen_puts(buf);
+#ifdef DEBUG
+    char buf[200];
+    snprintf(buf, sizeof(buf), "magic=%#x mtotalsize=%#x off_dt_struct=%#x off_dt_strings=%#x off_mem_rsvmap=%#x version=%#x last_comp_version=%#x boot_cpuid_phys=%#x size_dt_strings=%#x size_dt_struct=%#x",
+        header->magic, header->totalsize, header->off_dt_struct, header->off_dt_strings, header->off_mem_rsvmap, header->version, header->last_comp_version, header->boot_cpuid_phys, header->size_dt_strings, header->size_dt_struct);
+    screen_puts(buf);
+#endif
     if (gFdtHeader.magic != FDT_HEADER_MAGIC) {
         return false;
     }
@@ -60,14 +59,12 @@ bool fdt_parse_header(void *addr) {
 void print_reserved_map(void *addr) {
     fdt_reserve_entry_t reserve_entry;
     uint64_t offset = (uint64_t)addr + gFdtHeader.off_mem_rsvmap;
-    char buf[100];
 
     do {
         memcpy(&reserve_entry, (void *)offset, sizeof(reserve_entry));
         reserve_entry.address = __bswap64(reserve_entry.address);
         reserve_entry.size = __bswap64(reserve_entry.size);
-        snprintf(buf, sizeof(buf), "reserved: %#llx (size %#llx)", reserve_entry.address, reserve_entry.size);
-        write(buf);
+        printf("  %#llx - %#llx (size %#llx)\n", reserve_entry.address, reserve_entry.address + reserve_entry.size, reserve_entry.size);
         offset += sizeof(reserve_entry);
     } while(reserve_entry.address || reserve_entry.size);
 }
@@ -124,23 +121,18 @@ static int parse_fdt_node(uint8_t **ptr, char *strings, int depth, int (*cb_node
 }
 
 int dump_fdtree_node_cb(const char *node_name, int depth) {
-    char buf[100];
-    snprintf(buf, sizeof(buf), "%*s- %s", depth * 2, "", node_name);
-    write(buf);
+    printf("%*s- %s\n", depth * 2, "", node_name);
     return 0;
 }
 
 int dump_fdtree_prop_cb(void *cb_args, const char *node_name, int depth, const char *prop_name, void *val, uint32_t len) {
-    char buf[100];
     uint8_t *ptr = (uint8_t *)val;
 
-    snprintf(buf, sizeof(buf), "%*s%-*s (size %#x)", (depth + 2) * 2, "", 15, prop_name, len);
-    write(buf);
+    printf("%*s%-*s (size %#x)\n", (depth + 2) * 2, "", 15, prop_name, len);
 
     for (uint i = 0; i < len; i += 4) {
-        snprintf(buf, sizeof(buf), "%*s%02x %02x %02x %02x", (depth + 3) * 2, "",
-                    ptr[i + 0], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
-        write(buf);
+        printf("%*s%02x %02x %02x %02x\n", (depth + 3) * 2, "",
+               ptr[i + 0], ptr[i + 1], ptr[i + 2], ptr[i + 3]);
     }
 
     // continue
@@ -151,10 +143,9 @@ void dump_fdtree(void *addr) {
     uint8_t *cur_ptr = (uint8_t *)addr + gFdtHeader.off_dt_struct;
     char *strings = (char *)addr + gFdtHeader.off_dt_strings;
 
-    write("dumping fdtree:");
+    printf("dumping fdtree:\n");
     parse_fdt_node(&cur_ptr, strings, 0, dump_fdtree_node_cb, dump_fdtree_prop_cb, NULL);
-    write("");
-    write("");
+    printf("\n");
 }
 
 typedef struct {
@@ -187,4 +178,13 @@ bool fdtree_find_prop(const char *node_prefix, const char *prop_name, void *buf,
     };
 
     return (parse_fdt_node(&cur_ptr, strings, 0, NULL, find_fdtree_prop_cb, &find_args) == 2);
+}
+
+void fdt_cmd() {
+    // semms to be always empty but let's dump it anyway 🤷‍♂️
+    printf("reserved map:\n");
+    print_reserved_map(gDeviceTree);
+
+    // parse structure block
+    dump_fdtree(gDeviceTree);
 }

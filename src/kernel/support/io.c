@@ -165,6 +165,5 @@ int _read(int file, char *ptr, int len) {
         bufoff -= readln;
     } else panic("_read: shouldn't be reachable!");
     lock_release(&stdin_lock);
-    screen_puts("read exit");
     return readln;
 }

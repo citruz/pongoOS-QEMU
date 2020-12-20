@@ -3,6 +3,8 @@
 
 uint32_t interrupt_vector();
 
+// This is taken in large parts from https://github.com/ARM-software/arm-trusted-firmware/blob/master/drivers/arm/gic/v2/
+
 #define BIT_32(nr)			(U(1) << (nr))
 #define BIT_64(nr)			(ULL(1) << (nr))
 
@@ -195,39 +197,5 @@ uint32_t interrupt_vector();
 #define FIQ_EN_SHIFT		3
 #define FIQ_EN_BIT		BIT_32(FIQ_EN_SHIFT)
 #define ACK_CTL			BIT_32(2)
-
-/* GICC_IIDR bit masks and shifts */
-#define GICC_IIDR_PID_SHIFT	20
-#define GICC_IIDR_ARCH_SHIFT	16
-#define GICC_IIDR_REV_SHIFT	12
-#define GICC_IIDR_IMP_SHIFT	0
-
-#define GICC_IIDR_PID_MASK	U(0xfff)
-#define GICC_IIDR_ARCH_MASK	U(0xf)
-#define GICC_IIDR_REV_MASK	U(0xf)
-#define GICC_IIDR_IMP_MASK	U(0xfff)
-
-/* Interrupt handling constants */
-#define CSS_IRQ_MHU			69
-#define CSS_IRQ_GPU_SMMU_0		71
-#define CSS_IRQ_TZC			80
-#define CSS_IRQ_TZ_WDOG			86
-#define CSS_IRQ_SEC_SYS_TIMER		91
-
-#define ARM_IRQ_SEC_PHY_TIMER		29
-
-#define ARM_IRQ_SEC_SGI_0		8
-#define ARM_IRQ_SEC_SGI_1		9
-#define ARM_IRQ_SEC_SGI_2		10
-#define ARM_IRQ_SEC_SGI_3		11
-#define ARM_IRQ_SEC_SGI_4		12
-#define ARM_IRQ_SEC_SGI_5		13
-#define ARM_IRQ_SEC_SGI_6		14
-#define ARM_IRQ_SEC_SGI_7		15
-
-/* Priority levels for ARM platforms */
-#define PLAT_RAS_PRI			0x10
-#define PLAT_SDEI_CRITICAL_PRI		0x60
-#define PLAT_SDEI_NORMAL_PRI		0x70
 
 #endif

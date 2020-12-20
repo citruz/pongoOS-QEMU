@@ -277,6 +277,11 @@ void shell_main() {
 
     xnu_init();
 
+#ifdef QEMU
+    extern void fdt_cmd();
+    command_register("fdt", "dump QEMU device tree", fdt_cmd);
+#endif
+
 #ifdef AUTOBOOT
     extern void pongo_autoboot();
     pongo_autoboot();

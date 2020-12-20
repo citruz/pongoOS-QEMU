@@ -112,7 +112,7 @@ out:
 
 */
 
-char soc_name[9] = "unknown";
+char soc_name[9];
 uint32_t socnum = 0x0;
 void (*sep_boot_hook)(void);
 
@@ -121,6 +121,7 @@ __attribute__((noinline)) void pongo_entry_cached()
     extern char preemption_over;
     preemption_over = 1;
 
+#ifdef QEMU
     // virt to virt in cacheableview
     gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
 
@@ -136,7 +137,8 @@ __attribute__((noinline)) void pongo_entry_cached()
 
     gDevType = "QEMU";
     socnum = 0x1337;
-#if 0
+    strcpy(soc_name, "qemu");
+#else
     gDevType = dt_get_prop("arm-io", "device_type", NULL);
     size_t len = strlen(gDevType) - 3;
     len = len < 8 ? len : 8;
