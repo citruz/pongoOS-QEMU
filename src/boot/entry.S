@@ -91,7 +91,6 @@ _setup_el1:
     b.ne .
 
 el3_entry:
-
     adr x16, _exception_vector_el3
     msr vbar_el3, x16
     mov x16, #0x430

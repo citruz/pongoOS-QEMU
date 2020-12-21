@@ -68,7 +68,7 @@ uint64_t ttbpage_alloc() {
 }
 uint64_t ram_phys_off;
 uint64_t ram_phys_size;
-uint64_t tt_bits, tg0, t0sz, t1sz;
+uint64_t tt_bits, tg0, tg1, t0sz, t1sz;
 uint64_t ttb_alloc_base;
 volatile uint64_t *ttbr0, *ttbr1;
 
@@ -283,11 +283,13 @@ void lowlevel_setup(uint64_t phys_off, uint64_t phys_size)
     if (is_16k()) {
         tt_bits = 11;
         tg0 = 0b10;
+        tg1 = 0b01;
         t0sz = 28;
         t1sz = 28;
     } else {
         tt_bits = 9;
         tg0 = 0b00;
+        tg1 = 0b10;
         t0sz = 25;
         t1sz = 25;
     }
@@ -328,7 +330,7 @@ void lowlevel_setup(uint64_t phys_off, uint64_t phys_size)
     if (!(get_el() == 1)) panic("pongoOS runs in EL1 only! did you skip pongoMon?");
 
     set_vbar_el1((uint64_t)&exception_vector);
-    enable_mmu_el1((uint64_t)ttbr0, 0x13A402A00 | (tg0 << 14) | (tg0 << 30) | (t1sz << 16) | t0sz, 0x04ff00, (uint64_t)ttbr1);
+    enable_mmu_el1((uint64_t)ttbr0, 0x13A402A00 | (tg0 << 14) | (tg1 << 30) | (t1sz << 16) | t0sz, 0x04ff00, (uint64_t)ttbr1);
 
     kernel_vm_space.ttbr0 = (uint64_t)ttbr0;
     kernel_vm_space.ttbr1 = (uint64_t)ttbr1;

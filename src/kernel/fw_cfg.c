@@ -99,6 +99,7 @@ void init_fw_cfg() {
         uint64_t base_addr;
         uint64_t size;
     } __packed fw_cfg;
+	size_t fbsize;
 
     if(!fdtree_find_prop("fw-cfg@", "reg", &fw_cfg, sizeof(fw_cfg))) {
         panic("did not find fw-cfg in device tree");
@@ -132,7 +133,8 @@ void init_fw_cfg() {
 
     gBootArgs->Video.v_width = 800;
     gBootArgs->Video.v_height = 600;
-	gBootArgs->Video.v_baseAddr = (uint64_t)alloc_phys(gBootArgs->Video.v_width * gBootArgs->Video.v_height * RAMFB_BPP);
+	fbsize = gBootArgs->Video.v_width * gBootArgs->Video.v_height * RAMFB_BPP;
+	gBootArgs->Video.v_baseAddr = (uint64_t)alloc_phys(fbsize);
 	gBootArgs->Video.v_rowBytes = gBootArgs->Video.v_width * RAMFB_BPP;
 
 	// configure frame buffer
@@ -145,4 +147,8 @@ void init_fw_cfg() {
 
 	fw_cfg_select(ramfb_select);
 	fw_cfg_write_dma((uint8_t *)&config, sizeof(config));
+
+	// clear fb memory
+    extern volatile void smemset(void*, uint8_t, uint64_t);
+	smemset((void *)gBootArgs->Video.v_baseAddr, 0, fbsize);
 }

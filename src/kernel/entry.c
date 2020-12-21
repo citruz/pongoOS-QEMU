@@ -121,6 +121,9 @@ __attribute__((noinline)) void pongo_entry_cached()
     extern char preemption_over;
     preemption_over = 1;
 
+    map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
+
+
 #ifdef QEMU
     // virt to virt in cacheableview
     gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
@@ -189,8 +192,6 @@ __attribute__((noinline)) void pongo_entry_cached()
     screen_init();
 
     //gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
-
-    map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
 
     /*
         Set up main task for scheduling

@@ -14,17 +14,9 @@ Fork of PongoOS which can be run in QEMU.  Working so far:
 Not working:
 - Everything else
 
-To run:
-```bash
-make
-qemu-system-aarch64 \
-    -cpu cortex-a72 -M virt,highmem=off -accel tcg \
-    -device loader,file=build/Pongo.bin,addr=0x1000,force-raw=on \
-    -device loader,addr=0x1000,cpu-num=0 -m 4096 \
-    -device ramfb \
-    -serial stdio
-```
-You need to use the [utmapp fork](https://github.com/utmapp/qemu) of qemu which has working TCG emulation and apply the following patch to change the memory layout to what pongo expects:
+It can be run both virtualized using Hypervisor.framework on M1 or emulated with TCG. Although only the latter supports gdb debugging.
+
+You need to use the [utmapp fork](https://github.com/utmapp/qemu) of qemu which has HVF support and working TCG emulation. Apply the following patch to change the memory layout to what pongo expects:
 ```patch
 diff --git a/hw/arm/virt.c b/hw/arm/virt.c
 index 27dbeb549e..8a208badcb 100644
@@ -41,4 +33,24 @@ index 27dbeb549e..8a208badcb 100644
  /*
 ```
 
-Using qemu's `-s -S` arguments, you can also attach gdb and step through the execution.
+### Run with Hypervisor.framework
+```bash
+qemu-system-aarch64 \
+   -cpu host -M virt,highmem=off -accel hvf \
+   -device loader,file=build/Pongo.bin,addr=0x1000,force-raw=on   \
+   -device loader,addr=0x1000,cpu-num=0 -m 4096 \
+   -device ramfb \
+   -serial stdio
+```
+
+### Run emulated
+```bash
+qemu-system-aarch64 \
+    -cpu cortex-a72 -M virt -accel tcg \
+    -device loader,file=build/Pongo.bin,addr=0x1000,force-raw=on \
+    -device loader,addr=0x1000,cpu-num=0 -m 4096 \
+    -device ramfb \
+    -serial stdio
+```
+
+Using qemu's `-s -S` arguments, you can attach gdb and step through the execution.
