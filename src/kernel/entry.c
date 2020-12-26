@@ -112,7 +112,7 @@ out:
 
 */
 
-char soc_name[9];
+char soc_name[9] = {};
 uint32_t socnum = 0x0;
 void (*sep_boot_hook)(void);
 
@@ -121,12 +121,15 @@ __attribute__((noinline)) void pongo_entry_cached()
     extern char preemption_over;
     preemption_over = 1;
 
+    gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
+
     map_full_ram(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
 
 
 #ifdef QEMU
-    // virt to virt in cacheableview
-    gDeviceTree = (void*)((uint64_t)gBootArgs->deviceTreeP - gBootArgs->virtBase + gBootArgs->physBase - 0x800000000 + kCacheableView);
+    // if run in QEMU, the (linux) device tree will be located at the start of RAM
+    // see https://www.qemu.org/docs/master/system/arm/virt.html
+    gDeviceTree = (void*)(kCacheableView);
 
     if (!fdt_parse_header(gDeviceTree)) {
         panic("fdt invalid header");
@@ -142,6 +145,7 @@ __attribute__((noinline)) void pongo_entry_cached()
     socnum = 0x1337;
     strcpy(soc_name, "qemu");
 #else
+    gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
     gDevType = dt_get_prop("arm-io", "device_type", NULL);
     size_t len = strlen(gDevType) - 3;
     len = len < 8 ? len : 8;
@@ -181,8 +185,8 @@ __attribute__((noinline)) void pongo_entry_cached()
     
     task_link(&sched_task);
     _task_set_current(&sched_task);
+    // Setup VM
 
-    // Setup VM    
     vm_init();
 
     /*
@@ -191,7 +195,6 @@ __attribute__((noinline)) void pongo_entry_cached()
 
     screen_init();
 
-    //gIOBase = dt_get_u64_prop_i("arm-io", "ranges", 1);
 
     /*
         Set up main task for scheduling
@@ -280,15 +283,11 @@ volatile void jump_to_image_extended(uint64_t image, uint64_t args, uint64_t ori
 extern uint64_t gPongoSlide;
 
 boot_args gstatic_args = {
-    .Revision = 1,
-    .Version = 2,
-    .virtBase = 0xfffffff01ebf0000,
+    .virtBase = 0xfffffff01e000000,
     .physBase = 0x800000000,
     .memSize = 0x100000000, // 4GB
     .topOfKernelData = 0x806614000,
     .machineType = 0x1337,
-    .deviceTreeP = (void*)0xfffffff01ebf0000,
-    .deviceTreeLength = 0x1337,
     .CommandLine = "abc",
     .bootFlags = 0,
     .memSizeActual = 0x100000000, // 4GB
@@ -297,7 +296,7 @@ boot_args gstatic_args = {
 void pongo_entry(uint64_t *kernel_args, void *entryp, void (*exit_to_el1_image)(void *boot_args, void *boot_entry_point))
 {
     gBootArgs = &gstatic_args;
-    gEntryPoint = (void *)0x1337;
+    gEntryPoint = (void *)(gBootArgs->topOfKernelData + 0x80c580);
     lowlevel_setup(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
     rebase_pc(gPongoSlide);
     extern void set_exception_stack_core0();
@@ -315,8 +314,10 @@ void pongo_entry(uint64_t *kernel_args, void *entryp, void (*exit_to_el1_image)(
     }
     else
     {
+#ifndef QEMU
         tz_lockdown();
         xnu_boot();
+#endif
     }
     exit_to_el1_image((void*)gBootArgs, gEntryPoint);
     screen_puts("didn't boot?!");

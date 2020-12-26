@@ -14,14 +14,13 @@ typedef struct fw_cfg_file {      /* an individual file entry, 64 bytes total */
     char name[56];      /* fw_cfg item name, NUL-terminated ascii */
 } fw_cfg_file;
 
-
 typedef struct ramfb_config {
-  uint64_t address;
-  uint32_t fourCC;
-  uint32_t flags;
-  uint32_t width;
-  uint32_t height;
-  uint32_t stride;
+    uint64_t address;
+    uint32_t fourCC;
+    uint32_t flags;
+    uint32_t width;
+    uint32_t height;
+    uint32_t stride;
 } __packed ramfb_config;
 
 typedef struct fw_cfg_dma_access {
