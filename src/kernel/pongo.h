@@ -156,6 +156,10 @@ extern dt_node_t* dt_find(dt_node_t* node, const char* name);
 extern void* dt_prop(dt_node_t* node, const char* key, uint32_t* lenp);
 extern void* dt_get_prop(const char* device, const char* prop, uint32_t* size);
 
+bool dt_add_prop(dt_node_t *node, char *name, void* val, uint32_t len, void *end);
+bool dt_add_string_prop(dt_node_t *node, char *name, char *val, void *end);
+bool dt_add_child(dt_node_t *node, char *name, dt_node_t **store_node, void *end);
+
 extern bool fdtree_find_prop(const char *node_prefix, const char *prop_name, void *buf, uint32_t buflen);
 
 extern struct memmap* dt_alloc_memmap(dt_node_t* node, const char* name);

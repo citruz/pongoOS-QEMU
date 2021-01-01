@@ -283,20 +283,14 @@ volatile void jump_to_image_extended(uint64_t image, uint64_t args, uint64_t ori
 extern uint64_t gPongoSlide;
 
 boot_args gstatic_args = {
-    .virtBase = 0xfffffff01e000000,
     .physBase = 0x800000000,
     .memSize = 0x100000000, // 4GB
-    .topOfKernelData = 0x806614000,
-    .machineType = 0x1337,
-    .CommandLine = "abc",
-    .bootFlags = 0,
-    .memSizeActual = 0x100000000, // 4GB
+    .topOfKernelData = 0x806614000 + 75350016, // addr of kernel + size
 };
 
 void pongo_entry(uint64_t *kernel_args, void *entryp, void (*exit_to_el1_image)(void *boot_args, void *boot_entry_point))
 {
     gBootArgs = &gstatic_args;
-    gEntryPoint = (void *)(gBootArgs->topOfKernelData + 0x80c580);
     lowlevel_setup(gBootArgs->physBase & 0xFFFFFFFF, gBootArgs->memSize);
     rebase_pc(gPongoSlide);
     extern void set_exception_stack_core0();
