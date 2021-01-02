@@ -60,7 +60,7 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // prepare device tree
     void *dtree = alloc_static(4096);
     void *dt_end = dtree + 4096;
-    printf("dtree=0x%p\n", dtree);
+    printf("dtree=%p\n", dtree);
 
     memset(dtree, 0, 4096);
     dt_node_t *root = (dt_node_t *)dtree;
@@ -74,9 +74,10 @@ void pongo_boot_hook(const char *cmd, char *args) {
     dt_add_child(root, "arm-io", &arm_io, dt_end);
     dt_add_string_prop(arm_io, "device_type", "t8103-io", dt_end);
 
+    uint64_t IOBase = 0x200000000;
     uint64_t ranges[] = {
         0,
-        0x200000000 
+        IOBase
     };
     dt_add_prop(arm_io, "ranges", ranges, sizeof(ranges), dt_end);
 
@@ -97,14 +98,6 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // no random for you :)
     char *notrandom = "\xa1\x69\xa7\xc6\xc6\x8e\x5f\x0e\x17\xab\x1c\x7f\x12\xc4\xac\xc7\x46\x3d\x98\xda\x39\x70\x65\x19\xcf\xa8\x0d\xb1\x8f\x3b\xcf\x59\xd7\xa3\x94\xf6\xb5\x13\xba\x5c\x08\x28\xbb\xd0\x1e\xf4\x25\xef\x8b\x6b\x9a\x2d\x7e\x08\x4c\x11\x19\x52\xd5\x4c\xa4\x43\x02\x70";
     dt_add_prop(chosen, "random-seed", &notrandom, strlen(notrandom), dt_end);
-
-    // create chosen/memory-map
-    dt_node_t *memory_map;
-    dt_add_child(chosen, "memory-map", &memory_map, dt_end);
-
-    // create defaults node
-    dt_node_t *defaults;
-    dt_add_child(root, "defaults", &defaults, dt_end);
     struct {
         uint64_t base_addr;
         uint64_t size;
@@ -114,20 +107,48 @@ void pongo_boot_hook(const char *cmd, char *args) {
     }
     mem_info.base_addr = __bswap64(mem_info.base_addr);
     mem_info.size = __bswap64(mem_info.size);
-    // xnu expects value in bytes but only accepts a 32 bit value... how?
-    // however, the value will be overridden by the boot_args->memSize so it does not matter
-    //uint32_t hw_memsize = mem_info.size / (1024 * 1024);
-    //dt_add_prop(defaults, "hw.memsize", &hw_memsize, sizeof(hw_memsize), dt_end);
+    dt_add_prop(chosen, "dram-size", &mem_info.size, sizeof(mem_info.size), dt_end);
+    dt_add_prop(chosen, "dram-base", &mem_info.base_addr, sizeof(mem_info.base_addr), dt_end);
 
-    // calculate virtual address in xnu
-    uint64_t dtree_phys = (uint64_t)vatophys_static(dtree);
-    dtree_phys = dtree_phys - gBootArgs->physBase + gBootArgs->virtBase;
-    printf("dtree_phys=0x%p\n", (void *)dtree_phys);
+    // create chosen/memory-map
+    dt_node_t *memory_map;
+    dt_add_child(chosen, "memory-map", &memory_map, dt_end);
 
+    // create defaults node
+    dt_node_t *defaults;
+    dt_add_child(root, "defaults", &defaults, dt_end);
+
+
+    // uart
+    struct {
+        uint64_t base_addr;
+        uint64_t size;
+    } __packed uart_info;
+    if (!fdtree_find_prop("exynos4210@", "reg", &uart_info, sizeof(uart_info))) {
+        panic("did not find uart node in fdtree");
+    }
+    uart_info.base_addr = __bswap64(uart_info.base_addr);
+    uart_info.base_addr -= IOBase;
+    uart_info.size = __bswap64(uart_info.size);
+    dt_node_t *uart0;
+    dt_add_child(root, "uart0", &uart0, dt_end);
+    dt_add_string_prop(uart0, "boot-console", "name", dt_end);
+    dt_add_string_prop(uart0, "compatible", "uart-1,samsung", dt_end);
+    dt_add_prop(uart0, "reg", &uart_info, sizeof(uart_info), dt_end);
+
+    
+
+    //map_range(0xf00000000ULL, 0x840000000, (75360016 + 0x3FFF) & ~0x3FFFULL, 3, 1, false);
+    // kCacheableView == start of ram == 0x800000000 0x47E0000
+    //memcpy((void *)kCacheableView, (void *)0xf00000000ULL, 75350016);
+    memmove((void *)kCacheableView + 0x7004000, (void *)kCacheableView + 0x47E0000, 75350016);
+
+    gEntryPoint = (void *)(0x800000000 + 0x7004000 + 0x80c580);
 
     // update boot arguments
-    // lowest vm_addr & ~0x3fffffff
-    gBootArgs->virtBase = 0xFFFFFE0000000000;
+    // lowest vm_addr
+    gBootArgs->virtBase = 0xfffffe0000000000 + 0x7004000;;
+    gBootArgs->physBase = 0x800000000 + 0x7004000;
 
     // from @zhuowei:
     // this is badly named: it's actually
@@ -135,10 +156,13 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // if left at 0, kernel estimates it by taking difference between
     // memSize and size rounded up to 512m
     // it's only used for memory usage debugging though.
-    gBootArgs->memSizeActual = 0,
+    gBootArgs->memSizeActual = 0;
 
     // device tree
-    gBootArgs->deviceTreeP = (void *)dtree_phys;
+    // calculate virtual address in xnu
+    uint64_t dtree_xnu = (uint64_t)vatophys_static(dtree);
+    dtree_xnu = dtree_xnu - gBootArgs->physBase + gBootArgs->virtBase;
+    gBootArgs->deviceTreeP = (void *)dtree_xnu;
     gBootArgs->deviceTreeLength = 4096;
 
     // command line
@@ -146,14 +170,12 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // debug flags:
     //  0x2 debug log to console
     //  0x4 debug info to serial
-    snprintf(gBootArgs->CommandLine, sizeof(gBootArgs->CommandLine), "-v debug=%#x", (0x2 | 0x4));
+    snprintf(gBootArgs->CommandLine, sizeof(gBootArgs->CommandLine), "-v debug=%#x serial=0x7", (0x2 | 0x4 | 0x8));
     printf("command line: \"%s\"\n", gBootArgs->CommandLine);
 
     log_bootargs(NULL, NULL);
 
     log_dtree_internal(root);
-
-    gEntryPoint = (void *)(0x806614000 + 0x80c580);
 #endif
 
     task_yield();

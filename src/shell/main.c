@@ -289,7 +289,7 @@ void shell_main() {
 
     queue_rx_string("shell\n");
     
-    //queue_rx_string("bootx\n"); // for testing
+    queue_rx_string("bootx\n"); // for testing
 
 #ifdef LOCK_TESTING
     task_register(&pongo_lock_test1, pongo_lock_test1_entry);
