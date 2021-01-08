@@ -57,17 +57,26 @@ void pongo_boot_hook(const char *cmd, char *args) {
     gBootFlag = BOOT_FLAG_HOOK;
 
 #ifdef QEMU
+    // prepare boot args
+    boot_args *new_boot_args = alloc_static(sizeof(*new_boot_args));
+    memcpy(new_boot_args, gBootArgs, sizeof(*new_boot_args));
+    gBootArgs = (boot_args *)vatophys_static(new_boot_args);
+    printf("gBootArgs=%p physBase=%#llx\n", gBootArgs, gBootArgs->physBase);
+
+
     // prepare device tree
-    void *dtree = alloc_static(4096);
-    void *dt_end = dtree + 4096;
+    uint64_t dtree_size = 4096 + 8192; // dtree + nvram
+    void *dtree = alloc_static(dtree_size);
+    void *dt_end = dtree + dtree_size;
     printf("dtree=%p\n", dtree);
 
-    memset(dtree, 0, 4096);
+    memset(dtree, 0, dtree_size);
     dt_node_t *root = (dt_node_t *)dtree;
 
     // later: check return value
     dt_add_string_prop(root, "name", "device-tree", dt_end);
-    dt_add_string_prop(root, "test", "abc", dt_end);
+    const char compatible_str[] = "J313AP.MacBookAir10,1\0AppleARM";
+    dt_add_prop(root, "compatible", compatible_str, sizeof(compatible_str), dt_end);
 
     // create arm-io node
     dt_node_t *arm_io;
@@ -84,17 +93,22 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // create cpus node
     dt_node_t *cpus, *cpu0;
     dt_add_child(root, "cpus", &cpus, dt_end);
+
     dt_add_child(cpus, "cpu0", &cpu0, dt_end);
     uint32_t reg = 0;
+    dt_add_string_prop(cpu0, "device_type", "cpu", dt_end);
     dt_add_prop(cpu0, "reg", &reg, sizeof(reg), dt_end);
+    dt_add_u32_prop(cpu0, "cpu-id", 0, dt_end);
     dt_add_string_prop(cpu0, "state", "running", dt_end);
+    dt_add_u32_prop(cpu0, "interrupt-parent", 0x5d, dt_end);
+    dt_add_u32_prop(cpu0, "interrupts", 0x46, dt_end);
+    dt_add_prop_empty(cpu0, "no-aic-ipi-required", 0, dt_end);
 
     // create chosen node
     dt_node_t *chosen;
     dt_add_child(root, "chosen", &chosen, dt_end);
     // let's see how this might be useful
-    uint32_t debug_enabled = 0x1;
-    dt_add_prop(chosen, "debug-enabled", &debug_enabled, sizeof(debug_enabled), dt_end);
+    //dt_add_u32_prop(chosen, "debug-enabled", 1, dt_end);
     // no random for you :)
     char *notrandom = "\xa1\x69\xa7\xc6\xc6\x8e\x5f\x0e\x17\xab\x1c\x7f\x12\xc4\xac\xc7\x46\x3d\x98\xda\x39\x70\x65\x19\xcf\xa8\x0d\xb1\x8f\x3b\xcf\x59\xd7\xa3\x94\xf6\xb5\x13\xba\x5c\x08\x28\xbb\xd0\x1e\xf4\x25\xef\x8b\x6b\x9a\x2d\x7e\x08\x4c\x11\x19\x52\xd5\x4c\xa4\x43\x02\x70";
     dt_add_prop(chosen, "random-seed", &notrandom, strlen(notrandom), dt_end);
@@ -109,14 +123,106 @@ void pongo_boot_hook(const char *cmd, char *args) {
     mem_info.size = __bswap64(mem_info.size);
     dt_add_prop(chosen, "dram-size", &mem_info.size, sizeof(mem_info.size), dt_end);
     dt_add_prop(chosen, "dram-base", &mem_info.base_addr, sizeof(mem_info.base_addr), dt_end);
+    // add pongo version
+    char buf[50];
+    snprintf(buf, sizeof(buf), "pongoOS-%s", PONGO_VERSION);
+    dt_add_string_prop(chosen, "firmware-version", buf, dt_end);
+    // required by img4 loader
+    dt_add_u32_prop(chosen, "mix-n-match-prevention-status", 0, dt_end); // 0 seems to be permissive
+    dt_add_prop(chosen, "boot-manifest-hash", notrandom, 48, dt_end);
+
+    // nvram
+    char *nvram_header = "\x5A\x82\x02\x00\x6E\x76\x72\x61\x6D\x00\x00\x00\x00\x00\x00\x00\x41\x5B\x24\x80\x10\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x7C\x80\x00\x63\x6F\x6D\x6D\x6F\x6E\x00\x00\x00\x00\x00\x00\x6E\x6F\x6E\x63\x65\x2D\x73\x65\x65\x64\x73\x3D\xFF\x08\x8B\xAE\xD6\x69\x3B\xB1\x7B\x82\xA8\x42\xA7\x9E\xAE\x1F\x44\x49\xFF\x08\x65\x6A\x8B\xDF\x65\x7E\x82\x02\x47\x37\x18\xEF\x8B\x9C\xE0\xEF\xFF\x08\x55\x1D\xC6\x69\xC6\x40\x93\x4A\xD0\x92\x85\x1F\xF4\xAB\x88\x19\xFF\x08\x73\x60\xCE\x1F\xF9\xBA\x7D\xE5\x60\xC8\x8B\x5C\xE1\xCA\x58\xFF\x81\x00\x62\x61\x63\x6B\x6C\x69\x67\x68\x74\x2D\x6C\x65\x76\x65\x6C\x3D\x35\x39\x38\x00\x61\x75\x74\x6F\x2D\x62\x6F\x6F\x74\x3D\x74\x72\x75\x65\x00\x62\x6F\x6F\x74\x2D\x61\x72\x67\x73\x3D\x00\x75\x73\x62\x63\x66\x77\x66\x6C\x61\x73\x68\x65\x72\x52\x65\x73\x75\x6C\x74\x3D\x4E\x6F\x20\x65\x72\x72\x6F\x72\x73\x00\x62\x6F\x6F\x74\x64\x65\x6C\x61\x79\x3D\x30";
+    dt_prop_t *nvram_prop = dt_add_prop_empty(chosen, "nvram-proxy-data", 8192, dt_end);
+    memcpy(nvram_prop->val, nvram_header, 221);
+    dt_add_u32_prop(chosen, "nvram-total-size", 8192, dt_end);
+
+    // create chosen/aic
+    dt_node_t *aic;
+    dt_add_child(chosen, "aic", &aic, dt_end);
+    dt_add_string_prop(aic, "device_type", "interrupt-controller", dt_end);
+    dt_add_string_prop(aic, "interrupt-controller", "master", dt_end);
+    uint64_t aic_reg[4] = {
+        0xAABBCCDD, 0xc000,
+        0x11223344, 0x1000
+    };
+    dt_add_prop(aic, "reg", aic_reg, sizeof(aic_reg), dt_end);
+    dt_add_u32_prop(aic, "AAPL,phandle", 0x5d, dt_end);
+    dt_add_u32_prop(aic, "#interrupt-cells", 1, dt_end);
+    dt_add_u32_prop(aic, "#address-cells", 0, dt_end);
+    dt_add_u32_prop(aic, "#main-cpus", 1, dt_end);
+
+
+    // create chosen/aic-timebase
+    dt_node_t *aic_timebase;
+    dt_add_child(chosen, "aic-timebase", &aic_timebase, dt_end);
+    dt_add_string_prop(aic_timebase, "device_type", "timer", dt_end);
+
+
+    // create chosen/asmb
+    dt_node_t *asmb;
+    dt_add_child(chosen, "asmb", &asmb, dt_end);
+    // allow everything
+    dt_add_u64_prop(asmb, "lp-sip0", -1, dt_end);
+    // disable ctrr
+    dt_add_u32_prop(asmb, "lp-sip2", 1, dt_end);
+
 
     // create chosen/memory-map
     dt_node_t *memory_map;
     dt_add_child(chosen, "memory-map", &memory_map, dt_end);
+    uint64_t ram_disk[2] = {
+        0x80B800000,
+        143439360
+    };
+    dt_add_prop(memory_map, "RAMDisk", &ram_disk, sizeof(ram_disk), dt_end);
+
+    // create chosen/lock-regs
+    dt_node_t *lock_regs;
+    dt_add_child(chosen, "lock-regs", &lock_regs, dt_end);
+
+    // chosen/lock-regs/amcc
+    dt_node_t *amcc;
+    dt_add_child(lock_regs, "amcc", &amcc, dt_end);
+    dt_add_u32_prop(amcc, "aperture-count", 0, dt_end);
+    dt_add_u32_prop(amcc, "aperture-size", 0, dt_end);
+    dt_add_u32_prop(amcc, "plane-count", 0, dt_end);
+    dt_add_prop(amcc, "aperture-phys-addr", NULL, 0, dt_end);
+    dt_add_u32_prop(amcc, "cache-status-reg-offset", 0, dt_end);
+    dt_add_u32_prop(amcc, "cache-status-reg-mask", 0, dt_end);
+    dt_add_u32_prop(amcc, "cache-status-reg-value", 0, dt_end);
+
+    // chosen/lock-regs/amcc/amcc-ctrr-a
+    dt_node_t *amcc_ctrr_a;
+    dt_add_child(amcc, "amcc-ctrr-a", &amcc_ctrr_a, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "page-size-shift", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-offset", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-mask", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-value", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-offset", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-mask", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-value", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "lock-reg-offset", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "lock-reg-mask", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "lock-reg-value", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "enable-reg-offset", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "enable-reg-mask", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "enable-reg-value", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-offset", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-mask", 0, dt_end);
+    dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-value", 0, dt_end);
 
     // create defaults node
     dt_node_t *defaults;
     dt_add_child(root, "defaults", &defaults, dt_end);
+
+    // create options node (is this nvram?)
+    dt_node_t *options;
+    dt_add_child(root, "options", &options, dt_end);
+    char nonce_seeds[75];
+    memcpy(nonce_seeds, notrandom, 74);
+    nonce_seeds[74] = '\0';
+    dt_add_prop(options, "nonce-seeds", &nonce_seeds, sizeof(nonce_seeds), dt_end);
 
 
     // uart
@@ -135,15 +241,16 @@ void pongo_boot_hook(const char *cmd, char *args) {
     dt_add_string_prop(uart0, "boot-console", "name", dt_end);
     dt_add_string_prop(uart0, "compatible", "uart-1,samsung", dt_end);
     dt_add_prop(uart0, "reg", &uart_info, sizeof(uart_info), dt_end);
+    dt_add_u32_prop(uart0, "interrupt-parent", 0x5d, dt_end);
 
     
 
     //map_range(0xf00000000ULL, 0x840000000, (75360016 + 0x3FFF) & ~0x3FFFULL, 3, 1, false);
     // kCacheableView == start of ram == 0x800000000 0x47E0000
     //memcpy((void *)kCacheableView, (void *)0xf00000000ULL, 75350016);
-    memmove((void *)kCacheableView + 0x7004000, (void *)kCacheableView + 0x47E0000, 75350016);
+    //memmove((void *)kCacheableView + 0x7004000, (void *)kCacheableView + 0x47E0000, 75481088);
 
-    gEntryPoint = (void *)(0x800000000 + 0x7004000 + 0x80c580);
+    gEntryPoint = (void *)(0x800000000 + 0x7004000 + 0x810528);
 
     // update boot arguments
     // lowest vm_addr
@@ -163,19 +270,57 @@ void pongo_boot_hook(const char *cmd, char *args) {
     uint64_t dtree_xnu = (uint64_t)vatophys_static(dtree);
     dtree_xnu = dtree_xnu - gBootArgs->physBase + gBootArgs->virtBase;
     gBootArgs->deviceTreeP = (void *)dtree_xnu;
-    gBootArgs->deviceTreeLength = 4096;
+    gBootArgs->deviceTreeLength = dtree_size;
 
     // command line
-    // w00t? debug argument does not exist anymore (?)
-    // debug flags:
-    //  0x2 debug log to console
-    //  0x4 debug info to serial
-    snprintf(gBootArgs->CommandLine, sizeof(gBootArgs->CommandLine), "-v debug=%#x serial=0x7", (0x2 | 0x4 | 0x8));
-    printf("command line: \"%s\"\n", gBootArgs->CommandLine);
+    // serial=0x7 debug=0x8 -v progress=1 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 kextlog=0xffff io=0xfff cpus=1 rd=md0 apcie=0xffffffff
+    snprintf(phystokv((uint64_t)gBootArgs->CommandLine), sizeof(gBootArgs->CommandLine), "rd=md0 serial=0x7 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 kextlog=0xffff apcie=0xffffffff io=0xfff");
+    printf("command line: \"%s\"\n", phystokv((uint64_t)gBootArgs->CommandLine));
+    printf("dtree=%p\n", dtree);
 
     log_bootargs(NULL, NULL);
+    printf("\tVideo:\n\t\tv_baseAddr: %#lx\n\t\tv_display: %#lx\n\t\tv_rowBytes: %#lx\n\t\tv_width: %#lx\n\t\tv_height: %#lx\n\t\tv_depth: %#lx\n", gBootArgs->Video.v_baseAddr, gBootArgs->Video.v_display, gBootArgs->Video.v_rowBytes, gBootArgs->Video.v_width, gBootArgs->Video.v_height, gBootArgs->Video.v_depth);
 
     log_dtree_internal(root);
+
+    // clear fb
+    bzero((void *)gBootArgs->Video.v_baseAddr - 0x800000000 + kCacheableView, gBootArgs->Video.v_rowBytes * gBootArgs->Video.v_height);
+
+    // patches
+
+    // enable kprintf (set disable_serial_output = 0)
+    uint64_t kernel_start = 0x800000000 + 0x7004000;
+    *(uint32_t*)(kernel_start + 0x2B6D950) = 0;
+    *(uint32_t*)(kernel_start + 0x2B6D960) = 0;
+
+    // not call to OSRuntimeUnloadCPPForSegment
+    *(uint32_t*)(kernel_start + 0xfffffe0007e81050 - 0xfffffe0007004000) = 0xd503201f;
+
+    // make maybe_monitor_call return instantly (accesses invalid data?)
+    *(uint32_t*)(kernel_start + 0xfffffe000796e390 - 0xfffffe0007004000) = 0xd65f03c0;
+
+    // return after arm_vm_prot_finalize in machine_lockdown to prevent all sorts of problems with ppl and CTRR
+    *(uint32_t*)(kernel_start + 0xfffffe000796e2dc - 0xfffffe0007004000) = 0xa9427bfd; // ldp x29=>local_10,x30,[sp, #0x20]
+    *(uint32_t*)(kernel_start + 0xfffffe000796e2e0 - 0xfffffe0007004000) = 0xa9414ff4; // ldp x20,x19,[sp, #local_20]
+    *(uint32_t*)(kernel_start + 0xfffffe000796e2e4 - 0xfffffe0007004000) = 0x9100c3ff; // add sp,sp,#0x30
+    *(uint32_t*)(kernel_start + 0xfffffe000796e2e8 - 0xfffffe0007004000) = 0xd65f0fff; // retab
+
+    // replace bad instruction at the end of  pmap_return_ppl with ret -> not required when skipping machine_lockdown completely
+    //*(uint32_t*)(kernel_start + 0xfffffe0007810120 - 0xfffffe0007004000) = 0xd65f03c0; // ret
+
+    // nop out the call to PPL in aprr_ppl_enter
+    *(uint32_t*)(kernel_start + 0xfffffe000780fed0 - 0xfffffe0007004000) = 0xd503201f; // nop
+    *(uint32_t*)(kernel_start + 0xfffffe000780fed4 - 0xfffffe0007004000) = 0xd503201f; // nop
+
+    // nop out call to IOKitInitializeTime in bsd_init (freezes)
+    *(uint32_t*)(kernel_start + 0xfffffe0007d05644 - 0xfffffe0007004000) = 0xd503201f;
+
+
+    //*(uint32_t*)(kernel_start + 0xfffffe00080764ac - 0xfffffe0007004000) = 0xffffffff; // nop
+    //*(uint32_t*)(kernel_start + 0xfffffe0007d05604 - 0xfffffe0007004000) = 0xffffffff; // nop
+
+
+
 #endif
 
     task_yield();
@@ -332,6 +477,9 @@ static int dt_cbp(void *a, dt_node_t *node, int depth, const char *key, void *va
                 xs[2] = xs[5] = xs[8] = xs[11] = xs[14] = xs[17] = xs[20] = xs[23] = xs[24] = xs[27] = xs[30] = xs[33] = xs[36] = xs[39] = xs[42] = xs[45] = ' ';
             }
             size_t i;
+            if (len > 128) {
+                len = 128;
+            }
             for(i = 0; i < len; ++i)
             {
                 uint8_t c = str[i];

@@ -138,6 +138,7 @@ void init_fw_cfg() {
     uint64_t fbmem_phys = (uint64_t)vatophys_static(fbmem);
     gBootArgs->Video.v_baseAddr = fbmem_phys;
     gBootArgs->Video.v_rowBytes = gBootArgs->Video.v_width * RAMFB_BPP;
+    gBootArgs->Video.v_depth = 32;
 
     // configure frame buffer
     config.address = __bswap64(fbmem_phys);

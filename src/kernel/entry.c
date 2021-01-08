@@ -285,7 +285,8 @@ extern uint64_t gPongoSlide;
 boot_args gstatic_args = {
     .physBase = 0x800000000,
     .memSize = 0x100000000, // 4GB
-    .topOfKernelData = 0x807004000 + 75350016, // addr of kernel + size
+    .topOfKernelData = 0x807004000 + 75481088 + 143439360 + 0xa00, //  base addr of kernel + kernel size + ramdisk size + align
+    .CommandLine = "-v debug=0x7 serial=0x7",
 };
 
 void pongo_entry(uint64_t *kernel_args, void *entryp, void (*exit_to_el1_image)(void *boot_args, void *boot_entry_point))
