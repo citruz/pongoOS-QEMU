@@ -148,6 +148,7 @@ void pongo_boot_hook(const char *cmd, char *args) {
     //     0x40000,
     // };
     // dt_add_prop(cpu0, "coresight-reg", coresight_reg, sizeof(coresight_reg), dt_end);
+    // required, otherwise kernel will hang at "virtual bool CoreAnalyticsHub::start(IOService *)::105:CoreAnalyticsHub start"
     dt_add_string_prop(cpu0, "device_type", "cpu", dt_end);
     // uint64_t cpm_impl_reg[2] = {
     //     0x210e40000,
@@ -192,45 +193,45 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // create chosen/aic
     dt_node_t *aic;
     dt_add_child(chosen, "aic", &aic, dt_end);
-    // dt_add_string_prop(aic, "device_type", "interrupt-controller", dt_end);
-    // dt_add_string_prop(aic, "interrupt-controller", "master", dt_end);
-    // dt_add_string_prop(aic, "compatible", "aic,1", dt_end);
-    // dt_add_u32_prop(aic, "aic-version", 2, dt_end);
-    // dt_add_u32_prop(aic, "AAPL,phandle", 0x5d, dt_end);
-    // dt_add_u32_prop(aic, "#interrupt-cells", 1, dt_end);
-    // dt_add_u32_prop(aic, "#address-cells", 0, dt_end);
-    // dt_add_u32_prop(aic, "#main-cpus", 1, dt_end);
-    // dt_add_u32_prop(aic, "#shared-timestamps", 0x10, dt_end);
-    // uint64_t aic_reg[4] = {
-    //     0x3b100000, 0xc000,
-    //     0x3b108000, 0x1000
-    // };
-    // dt_add_prop(aic, "reg", aic_reg, sizeof(aic_reg), dt_end);
-    // uint64_t aic_destinations[9] = {
-    //     0x100000046,
-    //     0x200000049,
-    //     0x40000004C,
-    //     0x80000004F,
-    //     0x1000000063,
-    //     0x2000000066,
-    //     0x4000000069,
-    //     0x800000006C,
-    //     0x4000000023C,
-    // };
-    // dt_add_prop(aic, "target-destinations", aic_destinations, sizeof(aic_destinations), dt_end);
-    // uint64_t aic_ipid_mask[14] = { 0 };
-    // aic_ipid_mask[0] = 0xf;
-    // dt_add_prop(aic, "ipid-mask", aic_ipid_mask, sizeof(aic_ipid_mask), dt_end);
+    dt_add_string_prop(aic, "device_type", "interrupt-controller", dt_end);
+    dt_add_string_prop(aic, "interrupt-controller", "master", dt_end);
+    dt_add_string_prop(aic, "compatible", "aic,1", dt_end);
+    dt_add_u32_prop(aic, "aic-version", 2, dt_end);
+    dt_add_u32_prop(aic, "AAPL,phandle", 0x5d, dt_end);
+    dt_add_u32_prop(aic, "#interrupt-cells", 1, dt_end);
+    dt_add_u32_prop(aic, "#address-cells", 0, dt_end);
+    dt_add_u32_prop(aic, "#main-cpus", 1, dt_end);
+    dt_add_u32_prop(aic, "#shared-timestamps", 0x10, dt_end);
+    uint64_t aic_reg[4] = {
+        0x3b100000, 0xc000,
+        0x3b108000, 0x1000
+    };
+    dt_add_prop(aic, "reg", aic_reg, sizeof(aic_reg), dt_end);
+    uint64_t aic_destinations[9] = {
+        0x100000046,
+        0x200000049,
+        0x40000004C,
+        0x80000004F,
+        0x1000000063,
+        0x2000000066,
+        0x4000000069,
+        0x800000006C,
+        0x4000000023C,
+    };
+    dt_add_prop(aic, "target-destinations", aic_destinations, sizeof(aic_destinations), dt_end);
+    uint64_t aic_ipid_mask[14] = { 0 };
+    aic_ipid_mask[0] = 0xf;
+    dt_add_prop(aic, "ipid-mask", aic_ipid_mask, sizeof(aic_ipid_mask), dt_end);
 
     // create chosen/aic-timebase
-    // dt_node_t *aic_timebase;
-    // dt_add_child(chosen, "aic-timebase", &aic_timebase, dt_end);
-    // dt_add_string_prop(aic_timebase, "device_type", "timer", dt_end);
-    // uint64_t timer_reg[2] = {
-    //     0x3b108000,
-    //     0x1000
-    // };
-    // dt_add_prop(aic_timebase, "reg", &timer_reg, sizeof(timer_reg), dt_end);
+    dt_node_t *aic_timebase;
+    dt_add_child(chosen, "aic-timebase", &aic_timebase, dt_end);
+    dt_add_string_prop(aic_timebase, "device_type", "timer", dt_end);
+    uint64_t timer_reg[2] = {
+        0x3b108000,
+        0x1000
+    };
+    dt_add_prop(aic_timebase, "reg", &timer_reg, sizeof(timer_reg), dt_end);
 
 
     // create chosen/asmb
@@ -349,7 +350,7 @@ void pongo_boot_hook(const char *cmd, char *args) {
 
     // command line
     // serial=0x7 debug=0x8 -v progress=1 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 kextlog=0xffff io=0xfff cpus=1 rd=md0 apcie=0xffffffff
-    snprintf(phystokv((uint64_t)gBootArgs->CommandLine), sizeof(gBootArgs->CommandLine), "rd=md0 cpu=1 serial=0x7 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 apcie=0xffffffff");
+    snprintf(phystokv((uint64_t)gBootArgs->CommandLine), sizeof(gBootArgs->CommandLine), "-v rd=md0 cpu=1 serial=0x7 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 apcie=0xffffffff");
     printf("command line: \"%s\"\n", phystokv((uint64_t)gBootArgs->CommandLine));
     printf("dtree=%p\n", dtree);
 
@@ -384,8 +385,8 @@ void pongo_boot_hook(const char *cmd, char *args) {
     //*(uint32_t*)(kernel_start + 0xfffffe0007810120 - 0xfffffe0007004000) = 0xd65f03c0; // ret
 
     // nop out the call to PPL in aprr_ppl_enter
-    //*(uint32_t*)(kernel_start + 0xfffffe000780fed0 - 0xfffffe0007004000) = 0xd503201f; // nop
-    //*(uint32_t*)(kernel_start + 0xfffffe000780fed4 - 0xfffffe0007004000) = 0xd503201f; // nop
+    *(uint32_t*)(kernel_start + 0xfffffe000780fed0 - 0xfffffe0007004000) = 0xd503201f; // nop
+    *(uint32_t*)(kernel_start + 0xfffffe000780fed4 - 0xfffffe0007004000) = 0xd503201f; // nop
 
     // nop out call to IOKitInitializeTime in bsd_init (freezes)
     *(uint32_t*)(kernel_start + 0xfffffe0007d05644 - 0xfffffe0007004000) = 0xd503201f;
@@ -400,8 +401,8 @@ void pongo_boot_hook(const char *cmd, char *args) {
 
 
     // patch check_for_signature to always return 0
-    // *(uint32_t*)(kernel_start + 0xfffffe0007d3bea8 - 0xfffffe0007004000) = 0xd2800000; // mov x0, 0
-    // *(uint32_t*)(kernel_start + 0xfffffe0007d3beac - 0xfffffe0007004000) = 0xd65f0fff; // retab
+    //*(uint32_t*)(kernel_start + 0xfffffe0007d3bea8 - 0xfffffe0007004000) = 0xd2800000; // mov x0, 0
+    //*(uint32_t*)(kernel_start + 0xfffffe0007d3beac - 0xfffffe0007004000) = 0xd65f0fff; // retab
 
     
 
