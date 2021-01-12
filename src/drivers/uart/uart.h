@@ -20,13 +20,10 @@
 //  Copyright (c) 2019-2020 checkra1n team
 //  This file is part of pongoOS.
 //
-void serial_init();
-void serial_early_init();
-void serial_pinmux_init();
-void serial_putc(char c);
-void serial_disable_rx();
-void serial_enable_rx();
-void uart_flush();
+#import "serial.h"
+
+serial_ops_t uart_serial_ops;
+bool uart_early_init();
 
 #ifdef UART_INTERNAL
 #define rULCON0     (*(volatile uint32_t*)(gUartBase + 0x00))  //UART 0 Line control
@@ -41,12 +38,17 @@ void uart_flush();
 #define rURXH0      (*(volatile uint32_t*)(gUartBase + 0x24))  //UART 0 Receive buffer
 #define rUBRDIV0    (*(volatile uint32_t*)(gUartBase + 0x28))  //UART 0 Baud rate divisor
 #define rUDIVSLOT0  (*(volatile uint32_t*)(gUartBase + 0x2C))  //UART 0 Baud rate divisor
-#define rUINTM0     (*(volatile uint32_t*)(gUartBase + 0x38))  //UART 0 Baud rate divisor
+#define rUINTP0     (*(volatile uint32_t*)(gUartBase + 0x30))  //UART 0 Interrupt Pending
+#define rUINTM0     (*(volatile uint32_t*)(gUartBase + 0x38))  //UART 0 Interrupt Mask
 
 #define rT8011RX    (*(volatile uint32_t*)(gGpioBase + 0x2A0))
 #define rT8011TX    (*(volatile uint32_t*)(gGpioBase + 0x2A4))
 #define UART_TX_MUX 0x8723A0
 #define UART_RX_MUX 0x0763A0
 
+#define UART_RX_INT 0x1
+#define UART_TX_INT 0x4
+
 extern uint64_t gUartBase;
+
 #endif

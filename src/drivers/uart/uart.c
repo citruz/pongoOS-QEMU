@@ -23,8 +23,6 @@
 #define UART_INTERNAL 1
 #include <pongo.h>
 
-#ifndef QEMU
-
 char uart_queue[64];
 uint8_t uart_queue_idx;
 void uart_flush() {
@@ -78,81 +76,77 @@ void uart_main() {
         }
         uint32_t uerst = rUERSTAT0;
         rUERSTAT0 = uerst;
+
+        // clear interrupt
+        rUINTP0 = UART_RX_INT;
         enable_interrupts();
         task_exit_irq();
     }
 }
 
-static inline void put_serial_modifier(const char* str) {
-    while (*str) serial_putc(*str++);
-}
-
 uint64_t gUartBase;
-extern uint32_t gLogoBitmap[32];
-void serial_early_init() {
-    disable_interrupts();
-    gUartBase = dt_get_u32_prop("uart0", "reg");
-    gUartBase += gIOBase;
-    rULCON0 = 3;
-    rUCON0 = 0x405;
-    rUFCON0 = 0;
-    rUMCON0 = 0;
-    char reorder[6] = {'1','3','2','6','4','5'};
-    char modifier[] = {'\x1b', '[', '4', '1', ';', '1', 'm', 0};
-    int cnt = 0;
-    for (int y=0; y < 32; y++) {
-        uint32_t b = gLogoBitmap[y];
-        for (int x=0; x < 32; x++) {
-            if (b & (1 << (x))) {
-                modifier[3] = reorder[((cnt) % 6)];
-                put_serial_modifier(modifier);
-            }
-            serial_putc(' ');
-            serial_putc(' ');
-            if (b & (1 << (x))) {
-                put_serial_modifier("\x1b[0m");
-            }
-            cnt = (x+1) + y;
-        }
-        serial_putc('\n');
-    }
-    enable_interrupts();
-}
+uint16_t uart_irq;
 
-void serial_pinmux_init() {
+bool uart_early_init() {
     // Pinmux debug UART on ATV4K
     // This will also pinmux uart0 on iPad Pro 2G
     if((strcmp(soc_name, "t8011") == 0)) {
         rT8011TX = UART_TX_MUX;
         rT8011RX = UART_RX_MUX;
     }
+
+#ifdef QEMU
+    struct {
+        uint64_t base_addr;
+        uint64_t size;
+    } __packed uart_info;
+    struct {
+        uint32_t type;
+        uint32_t num;
+        uint32_t flags;
+    } __packed irq_info;
+    if (fdtree_find_prop("exynos4210@", "reg", &uart_info, sizeof(uart_info)) &&
+        fdtree_find_prop("exynos4210@", "interrupts", &irq_info, sizeof(irq_info))) {
+        gUartBase = __bswap64(uart_info.base_addr);
+        uart_irq = __bswap32(irq_info.num) + 32;
+    } else {
+        return false;
+    }
+#else
+    gUartBase = dt_get_u32_prop("uart0", "reg");
+    gUartBase += gIOBase;
+    uart_irq = dt_get_u32_prop("uart0", "interrupts");
+#endif
+    rULCON0 = 3;
+    rUCON0 = 0x405;
+    rUFCON0 = 0;
+    rUMCON0 = 0;
+
+    return true;
 }
 
-uint16_t uart_irq;
-void serial_disable_rx() {
-    uart_should_drop_rx = 1;
-}
-void serial_enable_rx() {
-    uart_should_drop_rx = 0;
-}
-char uart_irq_driven = 0;
-void serial_init() {
+void uart_init() {
     struct task* irq_task = task_create_extended("uart", uart_main, TASK_IRQ_HANDLER|TASK_PREEMPT, 0);
 
     disable_interrupts();
-    uart_irq = dt_get_u32_prop("uart0", "interrupts");
     serial_disable_rx();
     task_bind_to_irq(irq_task, uart_irq);
-    uart_irq_driven = 0;
     rUCON0 = 0x5885;
+    // ignore tx interrupts
+    rUINTM0 = UART_TX_INT;
+    // clear rx interrupts
+    rUINTP0 = UART_RX_INT;
     enable_interrupts();
 }
-void serial_putc(char c) {
-    if (c == '\n') serial_putc('\r');
-    if (!gUartBase) return;
+
+void uart_putc(char c) {
+    if (c == '\n') uart_putc('\r');
     while (!(rUTRSTAT0 & 0x04)) {}
     rUTXH0 = (unsigned)(c);
     return;
 }
 
-#endif
+serial_ops_t uart_serial_ops = {
+    .putc = uart_putc,
+    .init = uart_init,
+};

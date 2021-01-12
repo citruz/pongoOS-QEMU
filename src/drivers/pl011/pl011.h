@@ -6,6 +6,9 @@
 
 #ifndef PL011_H
 #define PL011_H
+#include <stdbool.h>
+
+#include "serial.h"
 
 #include "console.h"
 
@@ -101,14 +104,8 @@ int console_pl011_putc(int c, console_t *console);
 int console_pl011_getc(console_t *console);
 void console_pl011_flush(console_t *console);
 
-extern console_t gConsole;
-void serial_init();
-void serial_early_init();
-void serial_pinmux_init();
-void serial_putc(char c);
-void serial_disable_rx();
-void serial_enable_rx();
-void uart_flush();
+serial_ops_t pl011_serial_ops;
+bool pl011_early_init();
 
 #endif /*__ASSEMBLER__*/
 

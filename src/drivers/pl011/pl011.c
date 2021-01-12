@@ -8,96 +8,62 @@ uint32_t uart_should_drop_rx;
 
 #define write_32(offset, val) *((uint32_t *)(gConsole.base + (offset))) = (val)
 
-static inline void put_serial_modifier(const char* str) {
-    while (*str) serial_putc(*str++);
-}
-
-void serial_pinmux_init() {
-
-}
-void serial_putc(char c) {
+void pl011_putc(char c) {
     gConsole.putc(c, &gConsole);
 }
 
-char serial_getc() {
+char pl011_getc() {
     return gConsole.getc(&gConsole);
 }
 
-void serial_disable_rx() {
-    uart_should_drop_rx = 1;
-}
-void serial_enable_rx() {
-    uart_should_drop_rx = 0;
-}
-void uart_flush() {
+void pl011_flush() {
     gConsole.flush(&gConsole);
 }
 
-extern uint32_t gLogoBitmap[32];
-void serial_early_init() {
+bool pl011_early_init() {
     struct {
         uint64_t base_addr;
         uint64_t size;
     } __packed uart_base;
 
     if (!fdtree_find_prop("pl011@", "reg", &uart_base, sizeof(uart_base))) {
-        screen_puts("did not find uart");
+        return false;
     }
     uart_base.base_addr = __bswap64(uart_base.base_addr);
     uart_base.size = __bswap64(uart_base.size);
 
     // TODO get frequency from device tree
     if (!console_pl011_register(uart_base.base_addr, 24000000, 115200, &gConsole)) {
-        screen_puts("console_pl011_register FAILED");
-        panic("console_pl011_register failed");
+        return false;
     }
 
     gConsole.putc = &console_pl011_putc;
     gConsole.getc = &console_pl011_getc;
     gConsole.flush = &console_pl011_flush;
 
-    char reorder[6] = {'1','3','2','6','4','5'};
-    char modifier[] = {'\x1b', '[', '4', '1', ';', '1', 'm', 0};
-    int cnt = 0;
-    for (int y=0; y < 32; y++) {
-        uint32_t b = gLogoBitmap[y];
-        for (int x=0; x < 32; x++) {
-            if (b & (1 << (x))) {
-                modifier[3] = reorder[((cnt) % 6)];
-                put_serial_modifier(modifier);
-            }
-            serial_putc(' ');
-            serial_putc(' ');
-            if (b & (1 << (x))) {
-                put_serial_modifier("\x1b[0m");
-            }
-            cnt = (x+1) + y;
-        }
-        serial_putc('\n');
-    }
+    return true;
 }
 
 extern void queue_rx_char(char inch);
-void uart_main() {
+void pl011_main() {
     while(1) {
         disable_interrupts();
-        char cmd_l = serial_getc();
+        char cmd_l = pl011_getc();
         do {
             if (!uart_should_drop_rx) {
                 enable_interrupts();
                 queue_rx_char(cmd_l); // may take stdin lock
                 disable_interrupts();
             }
-            cmd_l = serial_getc();
+            cmd_l = pl011_getc();
         } while(cmd_l != ERROR_NO_PENDING_CHAR);
         enable_interrupts();
         task_exit_irq();
     }
 }
 
-void serial_init() {
-    struct task* irq_task = task_create_extended("uart", uart_main, TASK_IRQ_HANDLER|TASK_PREEMPT, 0);
-
+void pl011_init() {
+    struct task* irq_task = task_create_extended("pl011", pl011_main, TASK_IRQ_HANDLER|TASK_PREEMPT, 0);
     struct {
         uint32_t type;
         uint32_t num;
@@ -123,5 +89,11 @@ void serial_init() {
     task_bind_to_irq(irq_task, irq.num + 32);
     enable_interrupts();
 }
+
+serial_ops_t pl011_serial_ops = {
+    .putc = pl011_putc,
+    .flush = pl011_flush,
+    .init = pl011_init,
+};
 
 #endif

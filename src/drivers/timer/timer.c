@@ -36,7 +36,9 @@ void timer_disable() {
 char timer_inited = 0;
 
 void timer_rearm() {
+#ifndef QEMU
     set_timer_ctr(LLKTRW_QUANTA);
+#endif
 }
 
 void timer_init() {

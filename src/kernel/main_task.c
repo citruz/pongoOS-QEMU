@@ -50,9 +50,6 @@ void pongo_main_task() {
     // Setup GPIO Base
     //gpio_early_init();
 
-    // Setup serial pinmux
-    //serial_pinmux_init();
-
     // Enable serial TX
     serial_early_init();
 
