@@ -24,7 +24,7 @@
 .align 4
 start:
 // branch from x27 will end up here
-    mov x9, x8
+    mov x9, #0x1337
 // branch from x29 here
     adr x4, start
     mov x5, #0x800000000

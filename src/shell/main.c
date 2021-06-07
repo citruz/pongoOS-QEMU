@@ -289,6 +289,7 @@ void shell_main() {
 
     queue_rx_string("shell\n");
     
+    queue_rx_string("fdt\n"); // for testing
     queue_rx_string("bootx\n"); // for testing
 
 #ifdef LOCK_TESTING

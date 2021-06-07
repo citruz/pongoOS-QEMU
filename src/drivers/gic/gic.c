@@ -231,7 +231,7 @@ void interrupt_init() {
 #endif
 
     if (gic_version != ARCH_REV_GICV2) {
-        panic("gic version not supported");
+        //panic("gic version not supported");
     }
 
     gGicInfo.dist_base = gic_base.dist_addr;

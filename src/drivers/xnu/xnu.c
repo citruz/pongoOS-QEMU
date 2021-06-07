@@ -80,7 +80,7 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // create arm-io node
     dt_node_t *arm_io;
     dt_add_child(root, "arm-io", &arm_io, dt_end);
-    dt_add_string_prop(arm_io, "device_type", "t8103-io", dt_end);
+    dt_add_string_prop(arm_io, "device_type", "vmapple", dt_end);
 
     uint64_t IOBase = 0x200000000;
     uint64_t ranges[] = {
@@ -105,7 +105,7 @@ void pongo_boot_hook(const char *cmd, char *args) {
     //     0x50000,
     // };
     // dt_add_prop(cpu0, "acc-impl-reg", acc_impl_reg, sizeof(acc_impl_reg), dt_end);
-    dt_add_prop_empty(cpu0, "no-aic-ipi-required", 0, dt_end);
+    // dt_add_prop_empty(cpu0, "no-aic-ipi-required", 0, dt_end);
     // dt_add_u32_prop(cpu0, "l2-cache-size", 0x00400000, dt_end);
     // uint32_t error_handler[3] = {
     //     0x1e,
@@ -118,7 +118,7 @@ void pongo_boot_hook(const char *cmd, char *args) {
     //     0x10000,
     // };
     // dt_add_prop(cpu0, "cpu-uttdbg-reg", uttdbg_reg, sizeof(uttdbg_reg), dt_end);
-    dt_add_u32_prop(cpu0, "interrupt-parent", 0x5d, dt_end);
+    // dt_add_u32_prop(cpu0, "interrupt-parent", 0x5d, dt_end);
     dt_add_string_prop(cpu0, "name", "cpu0", dt_end);
     // dt_add_u32_prop(cpu0, "l2-cache-id", 0, dt_end);
     // const char cpu_compatible[] = "apple,icestorm\0ARM,v8";
@@ -134,11 +134,11 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // dt_add_prop(cpu0, "function-enable_core", enable_core, sizeof(enable_core), dt_end);
     // dt_add_u32_prop(cpu0, "cluster-id", 0x0, dt_end);
     // accessed in maybe_monitor_call
-    uint64_t cpu_impl_reg[2] = {
-        0x210050000,
-        0x10000,
-    };
-    dt_add_prop(cpu0, "cpu-impl-reg", cpu_impl_reg, sizeof(cpu_impl_reg), dt_end);
+    // uint64_t cpu_impl_reg[2] = {
+    //     0x210050000,
+    //     0x10000,
+    // };
+    // dt_add_prop(cpu0, "cpu-impl-reg", cpu_impl_reg, sizeof(cpu_impl_reg), dt_end);
     // uint32_t cpu_idle[2] = {
     //     0x74,
     //     0x63707549, // cpuI
@@ -150,20 +150,20 @@ void pongo_boot_hook(const char *cmd, char *args) {
     // };
     // dt_add_prop(cpu0, "coresight-reg", coresight_reg, sizeof(coresight_reg), dt_end);
     // required, otherwise kernel will hang at "virtual bool CoreAnalyticsHub::start(IOService *)::105:CoreAnalyticsHub start"
-    dt_add_string_prop(cpu0, "device_type", "cpu", dt_end);
-    // accessed in maybe_monitor_call
-    uint64_t cpm_impl_reg[2] = {
-        0x210e40000,
-        0x10000,
-    };
-    dt_add_prop(cpu0, "cpm-impl-reg", cpm_impl_reg, sizeof(cpm_impl_reg), dt_end);
+    // dt_add_string_prop(cpu0, "device_type", "cpu", dt_end);
+    // // accessed in maybe_monitor_call
+    // uint64_t cpm_impl_reg[2] = {
+    //     0x210e40000,
+    //     0x10000,
+    // };
+    // dt_add_prop(cpu0, "cpm-impl-reg", cpm_impl_reg, sizeof(cpm_impl_reg), dt_end);
     // dt_add_string_prop(cpu0, "cluster-type", "E", dt_end);
 
     // create chosen node
     dt_node_t *chosen;
     dt_add_child(root, "chosen", &chosen, dt_end);
     // let's see how this might be useful
-    dt_add_u32_prop(chosen, "debug-enabled", 1, dt_end);
+    //dt_add_u32_prop(chosen, "debug-enabled", 1, dt_end);
     // no random for you :)
     char *notrandom = "\xa1\x69\xa7\xc6\xc6\x8e\x5f\x0e\x17\xab\x1c\x7f\x12\xc4\xac\xc7\x46\x3d\x98\xda\x39\x70\x65\x19\xcf\xa8\x0d\xb1\x8f\x3b\xcf\x59\xd7\xa3\x94\xf6\xb5\x13\xba\x5c\x08\x28\xbb\xd0\x1e\xf4\x25\xef\x8b\x6b\x9a\x2d\x7e\x08\x4c\x11\x19\x52\xd5\x4c\xa4\x43\x02\x70";
     dt_add_prop(chosen, "random-seed", &notrandom, strlen(notrandom), dt_end);
@@ -187,53 +187,53 @@ void pongo_boot_hook(const char *cmd, char *args) {
     dt_add_prop(chosen, "boot-manifest-hash", notrandom, 48, dt_end);
 
     // nvram
-    char *nvram_header = "\x5A\x82\x02\x00\x6E\x76\x72\x61\x6D\x00\x00\x00\x00\x00\x00\x00\x41\x5B\x24\x80\x10\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x7C\x80\x00\x63\x6F\x6D\x6D\x6F\x6E\x00\x00\x00\x00\x00\x00\x6E\x6F\x6E\x63\x65\x2D\x73\x65\x65\x64\x73\x3D\xFF\x08\x8B\xAE\xD6\x69\x3B\xB1\x7B\x82\xA8\x42\xA7\x9E\xAE\x1F\x44\x49\xFF\x08\x65\x6A\x8B\xDF\x65\x7E\x82\x02\x47\x37\x18\xEF\x8B\x9C\xE0\xEF\xFF\x08\x55\x1D\xC6\x69\xC6\x40\x93\x4A\xD0\x92\x85\x1F\xF4\xAB\x88\x19\xFF\x08\x73\x60\xCE\x1F\xF9\xBA\x7D\xE5\x60\xC8\x8B\x5C\xE1\xCA\x58\xFF\x81\x00\x62\x61\x63\x6B\x6C\x69\x67\x68\x74\x2D\x6C\x65\x76\x65\x6C\x3D\x35\x39\x38\x00\x61\x75\x74\x6F\x2D\x62\x6F\x6F\x74\x3D\x74\x72\x75\x65\x00\x62\x6F\x6F\x74\x2D\x61\x72\x67\x73\x3D\x00\x75\x73\x62\x63\x66\x77\x66\x6C\x61\x73\x68\x65\x72\x52\x65\x73\x75\x6C\x74\x3D\x4E\x6F\x20\x65\x72\x72\x6F\x72\x73\x00\x62\x6F\x6F\x74\x64\x65\x6C\x61\x79\x3D\x30";
-    dt_prop_t *nvram_prop = dt_add_prop_empty(chosen, "nvram-proxy-data", 8192, dt_end);
-    memcpy(nvram_prop->val, nvram_header, 221);
-    dt_add_u32_prop(chosen, "nvram-total-size", 8192, dt_end);
+    // char *nvram_header = "\x5A\x82\x02\x00\x6E\x76\x72\x61\x6D\x00\x00\x00\x00\x00\x00\x00\x41\x5B\x24\x80\x10\x04\x00\x00\x00\x00\x00\x00\x00\x00\x00\x00\x70\x7C\x80\x00\x63\x6F\x6D\x6D\x6F\x6E\x00\x00\x00\x00\x00\x00\x6E\x6F\x6E\x63\x65\x2D\x73\x65\x65\x64\x73\x3D\xFF\x08\x8B\xAE\xD6\x69\x3B\xB1\x7B\x82\xA8\x42\xA7\x9E\xAE\x1F\x44\x49\xFF\x08\x65\x6A\x8B\xDF\x65\x7E\x82\x02\x47\x37\x18\xEF\x8B\x9C\xE0\xEF\xFF\x08\x55\x1D\xC6\x69\xC6\x40\x93\x4A\xD0\x92\x85\x1F\xF4\xAB\x88\x19\xFF\x08\x73\x60\xCE\x1F\xF9\xBA\x7D\xE5\x60\xC8\x8B\x5C\xE1\xCA\x58\xFF\x81\x00\x62\x61\x63\x6B\x6C\x69\x67\x68\x74\x2D\x6C\x65\x76\x65\x6C\x3D\x35\x39\x38\x00\x61\x75\x74\x6F\x2D\x62\x6F\x6F\x74\x3D\x74\x72\x75\x65\x00\x62\x6F\x6F\x74\x2D\x61\x72\x67\x73\x3D\x00\x75\x73\x62\x63\x66\x77\x66\x6C\x61\x73\x68\x65\x72\x52\x65\x73\x75\x6C\x74\x3D\x4E\x6F\x20\x65\x72\x72\x6F\x72\x73\x00\x62\x6F\x6F\x74\x64\x65\x6C\x61\x79\x3D\x30";
+    // dt_prop_t *nvram_prop = dt_add_prop_empty(chosen, "nvram-proxy-data", 8192, dt_end);
+    // memcpy(nvram_prop->val, nvram_header, 221);
+    // dt_add_u32_prop(chosen, "nvram-total-size", 8192, dt_end);
 
     // create chosen/aic
-    dt_node_t *aic;
-    dt_add_child(chosen, "aic", &aic, dt_end);
-    dt_add_string_prop(aic, "device_type", "interrupt-controller", dt_end);
-    dt_add_string_prop(aic, "interrupt-controller", "master", dt_end);
-    dt_add_string_prop(aic, "compatible", "aic,1", dt_end);
-    dt_add_u32_prop(aic, "aic-version", 2, dt_end);
-    dt_add_u32_prop(aic, "AAPL,phandle", 0x5d, dt_end);
-    dt_add_u32_prop(aic, "#interrupt-cells", 1, dt_end);
-    dt_add_u32_prop(aic, "#address-cells", 0, dt_end);
-    dt_add_u32_prop(aic, "#main-cpus", 1, dt_end);
-    dt_add_u32_prop(aic, "#shared-timestamps", 0x10, dt_end);
-    uint64_t aic_reg[4] = {
-        0x3b100000, 0xc000,
-        0x3b108000, 0x1000
-    };
-    dt_add_prop(aic, "reg", aic_reg, sizeof(aic_reg), dt_end);
-    uint64_t aic_destinations[9] = {
-        0x100000046,
-        0x200000049,
-        0x40000004C,
-        0x80000004F,
-        0x1000000063,
-        0x2000000066,
-        0x4000000069,
-        0x800000006C,
-        0x4000000023C,
-    };
-    dt_add_prop(aic, "target-destinations", aic_destinations, sizeof(aic_destinations), dt_end);
-    uint64_t aic_ipid_mask[14] = { 0 };
-    aic_ipid_mask[0] = 0xf;
-    dt_add_prop(aic, "ipid-mask", aic_ipid_mask, sizeof(aic_ipid_mask), dt_end);
+    // dt_node_t *aic;
+    // dt_add_child(chosen, "aic", &aic, dt_end);
+    // dt_add_string_prop(aic, "device_type", "interrupt-controller", dt_end);
+    // dt_add_string_prop(aic, "interrupt-controller", "master", dt_end);
+    // dt_add_string_prop(aic, "compatible", "aic,1", dt_end);
+    // dt_add_u32_prop(aic, "aic-version", 2, dt_end);
+    // dt_add_u32_prop(aic, "AAPL,phandle", 0x5d, dt_end);
+    // dt_add_u32_prop(aic, "#interrupt-cells", 1, dt_end);
+    // dt_add_u32_prop(aic, "#address-cells", 0, dt_end);
+    // dt_add_u32_prop(aic, "#main-cpus", 1, dt_end);
+    // dt_add_u32_prop(aic, "#shared-timestamps", 0x10, dt_end);
+    // uint64_t aic_reg[4] = {
+    //     0x3b100000, 0xc000,
+    //     0x3b108000, 0x1000
+    // };
+    // dt_add_prop(aic, "reg", aic_reg, sizeof(aic_reg), dt_end);
+    // uint64_t aic_destinations[9] = {
+    //     0x100000046,
+    //     0x200000049,
+    //     0x40000004C,
+    //     0x80000004F,
+    //     0x1000000063,
+    //     0x2000000066,
+    //     0x4000000069,
+    //     0x800000006C,
+    //     0x4000000023C,
+    // };
+    // dt_add_prop(aic, "target-destinations", aic_destinations, sizeof(aic_destinations), dt_end);
+    // uint64_t aic_ipid_mask[14] = { 0 };
+    // aic_ipid_mask[0] = 0xf;
+    // dt_add_prop(aic, "ipid-mask", aic_ipid_mask, sizeof(aic_ipid_mask), dt_end);
 
     // create chosen/aic-timebase
-    dt_node_t *aic_timebase;
-    dt_add_child(chosen, "aic-timebase", &aic_timebase, dt_end);
-    dt_add_string_prop(aic_timebase, "device_type", "timer", dt_end);
-    uint64_t timer_reg[2] = {
-        0x3b108000,
-        0x1000
-    };
-    dt_add_prop(aic_timebase, "reg", &timer_reg, sizeof(timer_reg), dt_end);
+    // dt_node_t *aic_timebase;
+    // dt_add_child(chosen, "aic-timebase", &aic_timebase, dt_end);
+    // dt_add_string_prop(aic_timebase, "device_type", "timer", dt_end);
+    // uint64_t timer_reg[2] = {
+    //     0x3b108000,
+    //     0x1000
+    // };
+    // dt_add_prop(aic_timebase, "reg", &timer_reg, sizeof(timer_reg), dt_end);
 
 
     // create chosen/asmb
@@ -245,8 +245,8 @@ void pongo_boot_hook(const char *cmd, char *args) {
     #define CSR_ALLOW_UNRESTRICTED_FS               (1 << 1)
     #define CSR_ALLOW_APPLE_INTERNAL                (1 << 4)
     dt_add_u64_prop(asmb, "lp-sip0", CSR_ALLOW_KERNEL_DEBUGGER | CSR_ALLOW_UNRESTRICTED_FS | CSR_ALLOW_APPLE_INTERNAL, dt_end);
-    // disable ctrr
-    dt_add_u32_prop(asmb, "lp-sip2", 1, dt_end);
+    // // disable ctrr
+    // dt_add_u32_prop(asmb, "lp-sip2", 1, dt_end);
 
 
     // create chosen/memory-map
@@ -259,46 +259,47 @@ void pongo_boot_hook(const char *cmd, char *args) {
     dt_add_prop(memory_map, "RAMDisk", &ram_disk, sizeof(ram_disk), dt_end);
 
     // create chosen/lock-regs
-    dt_node_t *lock_regs;
-    dt_add_child(chosen, "lock-regs", &lock_regs, dt_end);
+    // dt_node_t *lock_regs;
+    // dt_add_child(chosen, "lock-regs", &lock_regs, dt_end);
 
     // chosen/lock-regs/amcc
-    dt_node_t *amcc;
-    // these can be left out if ctrr is disabled via lp-sip2=1
-    dt_add_child(lock_regs, "amcc", &amcc, dt_end);
-    dt_add_u32_prop(amcc, "aperture-count", 0, dt_end);
-    dt_add_u32_prop(amcc, "aperture-size", 0, dt_end);
-    dt_add_u32_prop(amcc, "plane-count", 0, dt_end);
-    dt_add_prop(amcc, "aperture-phys-addr", NULL, 0, dt_end);
-    dt_add_u32_prop(amcc, "cache-status-reg-offset", 0, dt_end);
-    dt_add_u32_prop(amcc, "cache-status-reg-mask", 0, dt_end);
-    dt_add_u32_prop(amcc, "cache-status-reg-value", 0, dt_end);
+    // dt_node_t *amcc;
+    // // these can be left out if ctrr is disabled via lp-sip2=1
+    // dt_add_child(lock_regs, "amcc", &amcc, dt_end);
+    // dt_add_u32_prop(amcc, "aperture-count", 0, dt_end);
+    // dt_add_u32_prop(amcc, "aperture-size", 0, dt_end);
+    // dt_add_u32_prop(amcc, "plane-count", 0, dt_end);
+    // dt_add_prop(amcc, "aperture-phys-addr", NULL, 0, dt_end);
+    // dt_add_u32_prop(amcc, "cache-status-reg-offset", 0, dt_end);
+    // dt_add_u32_prop(amcc, "cache-status-reg-mask", 0, dt_end);
+    // dt_add_u32_prop(amcc, "cache-status-reg-value", 0, dt_end);
 
     // chosen/lock-regs/amcc/amcc-ctrr-a
-    dt_node_t *amcc_ctrr_a;
-    dt_add_child(amcc, "amcc-ctrr-a", &amcc_ctrr_a, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "page-size-shift", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-offset", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-mask", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-value", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-offset", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-mask", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-value", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "lock-reg-offset", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "lock-reg-mask", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "lock-reg-value", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "enable-reg-offset", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "enable-reg-mask", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "enable-reg-value", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-offset", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-mask", 0, dt_end);
-    dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-value", 0, dt_end);
+    // dt_node_t *amcc_ctrr_a;
+    // dt_add_child(amcc, "amcc-ctrr-a", &amcc_ctrr_a, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "page-size-shift", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-offset", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-mask", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "lower-limit-reg-value", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-offset", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-mask", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "upper-limit-reg-value", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "lock-reg-offset", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "lock-reg-mask", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "lock-reg-value", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "enable-reg-offset", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "enable-reg-mask", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "enable-reg-value", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-offset", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-mask", 0, dt_end);
+    // dt_add_u32_prop(amcc_ctrr_a, "write-disable-reg-value", 0, dt_end);
 
     // create defaults node
-    dt_node_t *defaults;
-    dt_add_child(root, "defaults", &defaults, dt_end);
+    // dt_node_t *defaults;
+    // dt_add_child(root, "defaults", &defaults, dt_end);
 
-    // create options node (is this nvram?)
+    // create options node
+    // required, otherwise panic with "failed to read nonce blob"
     dt_node_t *options;
     dt_add_child(root, "options", &options, dt_end);
     //char nonce_seeds[75];
@@ -326,6 +327,18 @@ void pongo_boot_hook(const char *cmd, char *args) {
         printf("WARNING did not find exynos4210 in device tree\n");
     }
 
+    if (fdtree_find_prop("pl011@", "reg", &uart_info, sizeof(uart_info))) {
+        uart_info.base_addr = __bswap64(uart_info.base_addr);
+        uart_info.base_addr -= IOBase;
+        uart_info.size = __bswap64(uart_info.size);
+        dt_node_t *uart0;
+        dt_add_child(root, "uart0", &uart0, dt_end);
+        dt_add_string_prop(uart0, "boot-console", "name", dt_end);
+        dt_add_prop(uart0, "reg", &uart_info, sizeof(uart_info), dt_end);
+        dt_add_u32_prop(uart0, "interrupt-parent", 0x5d, dt_end);
+    } else {
+        printf("WARNING did not find exynos4210 in device tree\n");
+    }
     
 
     //map_range(0xf00000000ULL, 0x840000000, (75360016 + 0x3FFF) & ~0x3FFFULL, 3, 1, false);
@@ -333,11 +346,13 @@ void pongo_boot_hook(const char *cmd, char *args) {
     //memcpy((void *)kCacheableView, (void *)0xf00000000ULL, 75350016);
     //memmove((void *)kCacheableView + 0x7004000, (void *)kCacheableView + 0x47E0000, 75481088);
 
-    gEntryPoint = (void *)(0x800000000 + 0x7004000 + 0x810528); // t8101
+    //gEntryPoint = (void *)(0x800000000 + 0x7004000 + 0x810528); // t8101
+    gEntryPoint = (void *)(0x800000000 + 0x7004000 + 0x80D488); // vmapple
 
     // update boot arguments
     // lowest vm_addr
-    gBootArgs->virtBase = 0xfffffe0000000000 + 0x7004000;;
+    //gBootArgs->virtBase = 0xfffffe0000000000 + 0x7004000; // t8101
+    gBootArgs->virtBase = 0xfffffff000000000 + 0x7004000; // vmapple
     gBootArgs->physBase = 0x800000000 + 0x7004000;
 
     // from @zhuowei:
@@ -357,20 +372,59 @@ void pongo_boot_hook(const char *cmd, char *args) {
 
     // command line
     // serial=0x7 debug=0x8 -v progress=1 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 kextlog=0xffff io=0xfff cpus=1 rd=md0 apcie=0xffffffff
-    snprintf(phystokv((uint64_t)gBootArgs->CommandLine), sizeof(gBootArgs->CommandLine), "rd=md0 aprr_jit=0 asp_logging=1 debug=0x8 serial=0x7 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 io=0xfff apcie=0xffffffff");
-    printf("command line: \"%s\"\n", phystokv((uint64_t)gBootArgs->CommandLine));
+    snprintf(phystokv((uint64_t)gBootArgs->CommandLine), sizeof(gBootArgs->CommandLine), "rd=md0 aprr_jit=0 asp_logging=1 debug=0x8 serial=0x7 cs_enforcement_disable=1 amfi_get_out_of_my_way=1 nvram-log=1 io=0xfff apcie=0xffffffff keepsyms=1");
+    printf("command line: \"%s\"\n", (char*)phystokv((uint64_t)gBootArgs->CommandLine));
     printf("dtree=%p\n", dtree);
 
     log_bootargs(NULL, NULL);
     printf("\tVideo:\n\t\tv_baseAddr: %#lx\n\t\tv_display: %#lx\n\t\tv_rowBytes: %#lx\n\t\tv_width: %#lx\n\t\tv_height: %#lx\n\t\tv_depth: %#lx\n", gBootArgs->Video.v_baseAddr, gBootArgs->Video.v_display, gBootArgs->Video.v_rowBytes, gBootArgs->Video.v_width, gBootArgs->Video.v_height, gBootArgs->Video.v_depth);
 
-    log_dtree_internal(root);
+    //log_dtree_internal(root);
 
     // clear fb
     bzero((void *)gBootArgs->Video.v_baseAddr - 0x800000000 + kCacheableView, gBootArgs->Video.v_rowBytes * gBootArgs->Video.v_height);
+    
+    // patches vmapple
+#if 1
+    uint64_t kernel_start = 0x800000000 + 0x7004000;
+
+    // hvc calls
+    // *(uint32_t*)(kernel_start + 0xfffffff007813314 - 0xfffffff007004000) = 0xd503201f; // nop
+    // *(uint32_t*)(kernel_start + 0xFFFFFFF00795FF74 - 0xfffffff007004000) = 0xd503201f; // nop
+    // *(uint32_t*)(kernel_start + 0xfffffff007fedf78 - 0xfffffff007004000) = 0xd503201f; // nop
+    // *(uint32_t*)(kernel_start + 0xfffffff007fedfb8 - 0xfffffff007004000) = 0xd503201f; // nop
+    
+
+    // enable kprintf (set disable_serial_output = 0)
+    *(uint32_t*)(kernel_start + 0xfffffff009ac5bc8 - 0xfffffff007004000) = 0;
+    *(uint32_t*)(kernel_start + 0xfffffff009ac5bd8 - 0xfffffff007004000) = 0;
+    
+    // nop call to OSRuntimeCallStructorsInSection
+    *(uint32_t*)(kernel_start + 0xfffffff007e7cd14 - 0xfffffff007004000) = 0xd503201f; // nop
+
+    // nop out call to IOKitInitializeTime in bsd_init (freezes)
+    *(uint32_t*)(kernel_start + 0xfffffff007d00220 - 0xfffffff007004000) = 0xd503201f;
+
+    //*(uint32_t*)(kernel_start + 0xfffffff007cff674 - 0xfffffff007004000) = 0xd4000002; // hvc
+    //*(uint32_t*)(kernel_start + 0xfffffff00793bee0 - 0xfffffff007004000) = 0xffffffff; // nop
+    //*(uint32_t*)(kernel_start + 0xfffffff00793bec4 - 0xfffffff007004000) = 0xd65f0fff; // retab
+    //*(uint32_t*)(kernel_start + 0xfffffff00787c210 - 0xfffffff007004000) = 0xd503201f; // nop
+    // *(uint32_t*)(kernel_start + 0xfffffff00787c220 - 0xfffffff007004000) = 0xd503201f; // nop
+    // *(uint32_t*)(kernel_start + 0xfffffff007cff6d8 - 0xfffffff007004000) = 0xd503201f; // nop
+    //*(uint32_t*)(kernel_start + 0xfffffff007cff6d8 - 0xfffffff007004000) = 0xd503201f; // nop
+
+    // ml_wait_max_cpu
+    *(uint32_t*)(kernel_start + 0xfffffff00796cb90 - 0xfffffff007004000) = 0xd2800020; // mov x0, #1
+    *(uint32_t*)(kernel_start + 0xfffffff00796cb94 - 0xfffffff007004000) = 0xd65f0fff; // retab
+
+    // fix vm_compressor_init (does it try to alloc too much memory?)
+    *(uint32_t*)(kernel_start + 0xfffffff0078cf370 - 0xfffffff007004000) = 0xd503201f; // nop
+
+#endif
+
 
     // patches t8101
-#if 1
+#if 0
     // enable kprintf (set disable_serial_output = 0)
     uint64_t kernel_start = 0x800000000 + 0x7004000;
     *(uint32_t*)(kernel_start + 0x2B6D950) = 0;
@@ -405,15 +459,11 @@ void pongo_boot_hook(const char *cmd, char *args) {
     *(uint32_t*)(kernel_start + 0xfffffe0007d3beac - 0xfffffe0007004000) = 0xd65f0fff; // retab
 
 
-    *(uint32_t*)(kernel_start + 0xfffffe0007ff03c0 - 0xfffffe0007004000) = 0xd53fffe8; // panic
+    //*(uint32_t*)(kernel_start + 0xfffffe0007ff03c0 - 0xfffffe0007004000) = 0xd53fffe8; // panic
     //*(uint32_t*)(kernel_start + 0xfffffe0007ff0cf0 - 0xfffffe0007004000) = 0xd53fffe8; // panic_with_thread_kernel_state
     
 
     //*(uint32_t*)(kernel_start + 0xfffffe0007feed5c - 0xfffffe0007004000) = 0xd53fffe8;
-
-
-
-
 #endif
 
     // patches t8001
